@@ -22,11 +22,11 @@ for question in range(len(questions)):
     for option in options[question]:
         print(option)
 
-    guess = input("\nWhat is your answer to the above question? ")
+    guess = input("\nWhat is your answer to the above question?: ")
     guess = guess.strip().upper() # strip() so that extra spaces from user input don't make a difference
     while guess not in ["A","B","C","D"]:
         print("Please pick an answer from the given options")
-        guess = input("\nWhat is your answer to the above question? ")
+        guess = input("\nWhat is your answer to the above question?: ")
         guess = guess.strip().upper() 
     guesses.append(guess)
     if guess == answers[question]:
