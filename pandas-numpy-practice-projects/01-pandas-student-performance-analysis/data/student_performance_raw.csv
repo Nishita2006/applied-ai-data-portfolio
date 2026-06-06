@@ -1,0 +1,16 @@
+Student_ID,Name,Gender,Age,City,Study_Hours,Attendance,Math_Score,Science_Score,English_Score,Internet_Access,Parent_Education
+101,Nisha,Female,20,Madison,3.5,92,85,88,90,Yes,Bachelor
+102,Riya,Female,21,Chicago,4.0,95,90,91,89,Yes,Master
+103,Aman,Male,19,Dallas,2.0,78,70,75,72,No,High School
+104,Sara,Female,22,Madison,3.0,88,82,80,85,Yes,Bachelor
+105,John,Male,,Boston,1.5,65,60,58,62,No,High School
+106,Meera,Female,20,Chicago,4.5,97,95,94,96,Yes,Master
+107,Rahul,Male,21,Dallas,2.5,82,76,,78,No,Bachelor
+108,Ananya,Female,19,Madison,5.0,99,98,96,97,Yes,Master
+109,David,Male,22,Boston,1.0,55,50,52,48,No,High School
+110,Priya,Female,20,Chicago,3.2,90,84,86,88,Yes,Bachelor
+111,Karan,Male,21,Dallas,2.8,85,79,81,80,Yes,Bachelor
+112,Leah,Female,22,Boston,3.7,91,87,89,,Yes,Master
+113,Arjun,Male,20,Madison,1.8,70,65,68,66,No,High School
+114,Sophia,Female,21,Chicago,4.2,96,92,93,94,Yes,Bachelor
+115,Aman,Male,19,Dallas,2.0,78,70,75,72,No,High School
