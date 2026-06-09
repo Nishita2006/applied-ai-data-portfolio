@@ -92,15 +92,15 @@ print(performance_count)
 
 city_based_avg = df.groupby("City")["Average_Score"].mean()
 print("--------------Average Score by City---------------")
-print(city_based_avg)
+print(city_based_avg.round(2))
 
 gender_based_avg = df.groupby("Gender")["Average_Score"].mean()
 print("--------------Average Score by Gender---------------")
-print(gender_based_avg)
+print(gender_based_avg.round(2))
 
 education_based_avg = df.groupby("Parent_Education")["Average_Score"].mean()
 print("--------------Average Score by Parent Education---------------")
-print(education_based_avg)
+print(education_based_avg.round(2))
 
 print("--------------Subject-wise Average Scores---------------")
 
@@ -115,11 +115,11 @@ print(f"The average Science score is: {science_avg:.2f}")
 
 internet_based_avg = df.groupby("Internet_Access")["Average_Score"].mean()
 print("--------------Average Score by Internet Access---------------")
-print(internet_based_avg)
+print(internet_based_avg.round(2))
 
 study_based_avg = df.groupby("Study_Category")["Average_Score"].mean()
 print("--------------Average Score by Study Category---------------")
-print(study_based_avg)
+print(study_based_avg.round(2))
 
 top5 = df.sort_values("Average_Score", ascending = False)
 top5 = top5.head()
