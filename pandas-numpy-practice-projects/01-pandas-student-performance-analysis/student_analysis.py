@@ -130,6 +130,15 @@ at_risk_students = df[(df["Average_Score"] < 70) | (df["Attendance"] < 75)]
 print("--------------Students At Risk---------------")
 print(at_risk_students[["Student_ID", "Name", "Average_Score", "Attendance", "Result", "Performance_Level"]])
 
+df["Total_Score"] = df["Science_Score"] + df["English_Score"] + df["Math_Score"]
+df["Average_Score"] = df["Total_Score"] / 3
+
+df["Total_Score"] = df["Total_Score"].round(2)
+df["Average_Score"] = df["Average_Score"].round(2)
+df["Science_Score"] = df["Science_Score"].round(2)
+df["English_Score"] = df["English_Score"].round(2)
+df["Age"] = df["Age"].round(2)
+
 df.to_csv(
     "pandas-numpy-practice-projects/01-pandas-student-performance-analysis/data/student_performance_cleaned.csv",
     index=False
