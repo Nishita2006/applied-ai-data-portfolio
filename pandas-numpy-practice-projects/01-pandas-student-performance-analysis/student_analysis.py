@@ -34,9 +34,15 @@ df = df.drop_duplicates(subset=["Name", "Gender", "Age", "City", "Study_Hours", 
 #Shape after data cleaning
 print(f"Shape after cleaning: {df.shape}")
 
+df["Age"] = df["Age"].round(2)
+df["Science_Score"] = df["Science_Score"].round(2)
+df["English_Score"] = df["English_Score"].round(2)
+
 #Calculating and add Total_score and average_score columns
 df["Total_Score"] = df["Science_Score"] + df["English_Score"] + df["Math_Score"]
 df["Average_Score"] = df["Total_Score"]/3
+df["Total_Score"] = df["Total_Score"].round(2)
+df["Average_Score"] = df["Average_Score"].round(2)
 
 #Deciding whether the student has passed or failed 
 df["Result"] = df["Average_Score"].apply(lambda avg: "Pass" if avg >= 70 else "Fail")
@@ -113,6 +119,7 @@ print(f"The average English score is: {eng_avg:.2f}")
 science_avg = df["Science_Score"].mean()
 print(f"The average Science score is: {science_avg:.2f}")
 
+
 internet_based_avg = df.groupby("Internet_Access")["Average_Score"].mean()
 print("--------------Average Score by Internet Access---------------")
 print(internet_based_avg.round(2))
@@ -129,15 +136,6 @@ print(top5[["Student_ID", "Name", "Average_Score", "Performance_Level", "Study_C
 at_risk_students = df[(df["Average_Score"] < 70) | (df["Attendance"] < 75)] 
 print("--------------Students At Risk---------------")
 print(at_risk_students[["Student_ID", "Name", "Average_Score", "Attendance", "Result", "Performance_Level"]])
-
-df["Total_Score"] = df["Science_Score"] + df["English_Score"] + df["Math_Score"]
-df["Average_Score"] = df["Total_Score"] / 3
-
-df["Total_Score"] = df["Total_Score"].round(2)
-df["Average_Score"] = df["Average_Score"].round(2)
-df["Science_Score"] = df["Science_Score"].round(2)
-df["English_Score"] = df["English_Score"].round(2)
-df["Age"] = df["Age"].round(2)
 
 df.to_csv(
     "pandas-numpy-practice-projects/01-pandas-student-performance-analysis/data/student_performance_cleaned.csv",

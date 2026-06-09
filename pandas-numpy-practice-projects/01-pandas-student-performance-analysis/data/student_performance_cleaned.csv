@@ -1,15 +1,15 @@
 Student_ID,Name,Gender,Age,City,Study_Hours,Attendance,Math_Score,Science_Score,English_Score,Internet_Access,Parent_Education,Total_Score,Average_Score,Result,Performance_Level,Attendance_Category,Study_Category
-101,Nisha,Female,20.0,Madison,3.5,92,85,88.0,90.0,Yes,Bachelor,263.0,87.66666666666667,Pass,Good,High Attendance,Medium Study
+101,Nisha,Female,20.0,Madison,3.5,92,85,88.0,90.0,Yes,Bachelor,263.0,87.67,Pass,Good,High Attendance,Medium Study
 102,Riya,Female,21.0,Chicago,4.0,95,90,91.0,89.0,Yes,Master,270.0,90.0,Pass,Excellent,High Attendance,High Study
-103,Aman,Male,19.0,Dallas,2.0,78,70,75.0,72.0,No,High School,217.0,72.33333333333333,Pass,Needs Improvement,Medium Attendance,Medium Study
-104,Sara,Female,22.0,Madison,3.0,88,82,80.0,85.0,Yes,Bachelor,247.0,82.33333333333333,Pass,Average,Medium Attendance,Medium Study
+103,Aman,Male,19.0,Dallas,2.0,78,70,75.0,72.0,No,High School,217.0,72.33,Pass,Needs Improvement,Medium Attendance,Medium Study
+104,Sara,Female,22.0,Madison,3.0,88,82,80.0,85.0,Yes,Bachelor,247.0,82.33,Pass,Average,Medium Attendance,Medium Study
 105,John,Male,20.5,Boston,1.5,65,60,58.0,62.0,No,High School,180.0,60.0,Fail,Needs Improvement,Low Attendance,Low Study
 106,Meera,Female,20.0,Chicago,4.5,97,95,94.0,96.0,Yes,Master,285.0,95.0,Pass,Excellent,High Attendance,High Study
-107,Rahul,Male,21.0,Dallas,2.5,82,76,80.42857142857143,78.0,No,Bachelor,234.42857142857144,78.14285714285715,Pass,Average,Medium Attendance,Medium Study
+107,Rahul,Male,21.0,Dallas,2.5,82,76,80.43,78.0,No,Bachelor,234.43,78.14,Pass,Average,Medium Attendance,Medium Study
 108,Ananya,Female,19.0,Madison,5.0,99,98,96.0,97.0,Yes,Master,291.0,97.0,Pass,Excellent,High Attendance,High Study
 109,David,Male,22.0,Boston,1.0,55,50,52.0,48.0,No,High School,150.0,50.0,Fail,Needs Improvement,Low Attendance,Low Study
 110,Priya,Female,20.0,Chicago,3.2,90,84,86.0,88.0,Yes,Bachelor,258.0,86.0,Pass,Good,High Attendance,Medium Study
 111,Karan,Male,21.0,Dallas,2.8,85,79,81.0,80.0,Yes,Bachelor,240.0,80.0,Pass,Average,Medium Attendance,Medium Study
-112,Leah,Female,22.0,Boston,3.7,91,87,89.0,79.78571428571429,Yes,Master,255.78571428571428,85.26190476190476,Pass,Good,High Attendance,Medium Study
-113,Arjun,Male,20.0,Madison,1.8,70,65,68.0,66.0,No,High School,199.0,66.33333333333333,Fail,Needs Improvement,Low Attendance,Low Study
+112,Leah,Female,22.0,Boston,3.7,91,87,89.0,79.79,Yes,Master,255.79,85.26,Pass,Good,High Attendance,Medium Study
+113,Arjun,Male,20.0,Madison,1.8,70,65,68.0,66.0,No,High School,199.0,66.33,Fail,Needs Improvement,Low Attendance,Low Study
 114,Sophia,Female,21.0,Chicago,4.2,96,92,93.0,94.0,Yes,Bachelor,279.0,93.0,Pass,Excellent,High Attendance,High Study
