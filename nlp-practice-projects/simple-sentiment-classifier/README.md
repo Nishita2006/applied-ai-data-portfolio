@@ -40,11 +40,15 @@ Each row contains:
 
 ## Results and Insights
 
-The model was able to classify some simple positive, negative, and neutral sentences correctly.
+The model was able to follow the full NLP classification workflow and make predictions on both test data and custom sentences.
 
-However, because the dataset is very small, the model does not always understand more complex sentences. For example, some sentences with words like “quality” or “buy” may be misclassified because the model is learning from limited examples.
+One important insight was that the model works better on simple sentences that use words similar to the training examples. For example, sentences with clear positive or negative words were easier for the model to classify.
 
-This showed me that NLP models need enough good-quality training data to make reliable predictions.
+The model struggled with some custom sentences because the dataset is very small. For example, a sentence like “The quality was okay” can be confusing because the word “quality” appears in both positive and negative training examples. The model does not truly understand meaning like a human. It learns patterns from the words it has seen.
+
+This helped me understand that model performance depends heavily on the quality and size of the dataset. A small manual dataset is useful for practice, but a real-world NLP project needs more examples, better variety, and stronger evaluation.
+
+Another insight was that accuracy alone is not enough. It is important to check precision, recall, F1-score, and the confusion matrix to understand where the model is making mistakes.
 
 ## Key Learnings
 
@@ -62,7 +66,7 @@ Through this project, I learned:
 * The dataset is manually created and very small
 * The model is only for practice and not ready for real-world use
 * The model may misclassify sentences that have mixed or unclear sentiment
-* A larger real dataset would improve performance
+* A larger real-world dataset would improve performance
 
 ## Next Steps
 
@@ -73,3 +77,9 @@ Possible improvements:
 * Try different models such as Naive Bayes or Linear SVM
 * Use n-grams to capture phrases like “not good” or “not recommend”
 * Build a stronger financial sentiment analyzer using real financial text data
+
+## Conclusion
+
+This project helped me practice the basic NLP machine learning pipeline from start to finish. I learned how to convert text into numerical TF-IDF features, train a classification model, evaluate predictions, and test the model on new sentences.
+
+This project is a foundation for building larger NLP projects such as a financial sentiment analyzer or resume matcher.
