@@ -1,0 +1,201 @@
+post_id,post_type,item_name,category,color,brand,description,location,date,contact_method,true_match_id,match_group
+L001,lost,water bottle,bottle,black,Hydro Flask,Lost my black Hydro Flask water bottle near Union South. It has a small scratch.,Union South,2026-06-03,campus app message,F001,G001
+L002,lost,laptop charger,electronics,white,Apple,Lost my white Apple laptop charger near Computer Sciences Building. It has a zipper pocket.,Computer Sciences Building,2026-03-12,campus app message,F002,G002
+L003,lost,student ID,wallets_cards,red,Wiscard,Lost my red Wiscard student ID near College Library. It has a worn label.,College Library,2026-04-23,campus app message,F003,G003
+L004,lost,wallet,wallets_cards,brown,Coach,Lost my brown Coach wallet near Memorial Union. It has course notes inside.,Memorial Union,2026-03-20,campus app message,F004,G004
+L005,lost,umbrella,umbrellas,navy,Totes,Lost my navy Totes umbrella near Van Vleck Hall. It has a campus sticker.,Van Vleck Hall,2026-04-14,campus app message,F005,G005
+L006,lost,airpods case,electronics,white,Apple,Lost white airpods case at Grainger Hall. It might be near the seating area. a sticker on it,Grainger Hall,2026-05-10,campus app message,F006,G006
+L007,lost,notebook,books_notes,green,Moleskine,"Missing Moleskine notebook, green, last seen at Engineering Hall. Please message me if found.",Engineering Hall,2026-03-06,campus app message,F007,G007
+L008,lost,backpack,bags,black,North Face,Lost my black North Face backpack near Nicholas Recreation Center. It has course notes inside.,Nicholas Recreation Center,2026-04-28,campus app message,F008,G008
+L009,lost,keys,keys,silver,,"Missing keys, silver, last seen at Sellery Residence Hall. Please message me if found.",Sellery Residence Hall,2026-05-29,campus app message,F009,G009
+L010,lost,sweatshirt,clothing,gray,Nike,Can’t find my gray Nike sweatshirt; last had it near SERF. a small scratch.,SERF,2026-04-18,campus app message,F010,G010
+L011,lost,calculator,electronics,black,Texas Instruments,I think I left a black calculator around Van Vleck Hall after class. a zipper pocket.,Van Vleck Hall,2026-06-12,campus app message,F011,G011
+L012,lost,ring,jewelry_accessories,gold,,I think I left a gold ring around Chazen Museum after class. a small scratch.,Chazen Museum,2026-04-20,campus app message,F012,G012
+L013,lost,earrings,jewelry_accessories,silver,,I think I left a silver earrings around Bakke Recreation Center after class. a small dent.,Bakke Recreation Center,2026-05-08,campus app message,F013,G013
+L014,lost,lunch box,miscellaneous,blue,Bentgo,Can’t find my blue Bentgo lunch box; last had it near Education Building. no visible name.,Education Building,2026-05-05,campus app message,F014,G014
+L015,lost,textbook,books_notes,blue,Pearson,Lost my blue Pearson textbook near Memorial Library. It has a sticker on it.,Memorial Library,2026-05-16,campus app message,F015,G015
+L016,lost,jacket,clothing,black,Columbia,Lost black jacket at Camp Randall. It might be near the seating area. a worn label,Camp Randall,2026-05-27,campus app message,F016,G016
+L017,lost,phone,electronics,black,iPhone,"Missing iPhone phone, black, last seen at State Street. Please message me if found.",State Street,2026-03-21,campus app message,F017,G017
+L018,lost,charger cable,electronics,white,Anker,Can’t find my white Anker charger cable; last had it near Helen C. White Library. course notes inside.,Helen C. White Library,2026-05-21,campus app message,F018,G018
+L019,lost,glasses,miscellaneous,black,Ray-Ban,"Missing Ray-Ban glasses, black, last seen at Humanities Building. Please message me if found.",Humanities Building,2026-05-02,campus app message,F019,G019
+L020,lost,tote bag,bags,cream,Trader Joe's,I think I left a cream tote bag around Memorial Union after class. course notes inside.,Memorial Union,2026-03-11,campus app message,F020,G020
+L021,lost,water bottle,bottle,blue,Owala,Can’t find my blue Owala water bottle; last had it near Lakeshore Path. a small scratch.,Lakeshore Path,2026-05-10,campus app message,F021,G021
+L022,lost,wallet,wallets_cards,black,,Lost black wallet at Kohl Center. It might be near the seating area. a worn label,Kohl Center,2026-04-21,campus app message,F022,G022
+L023,lost,headphones,electronics,black,Sony,Lost black headphones at College Library. It might be near the seating area. a campus sticker,College Library,2026-03-29,campus app message,F023,G023
+L024,lost,scarf,clothing,red,,Can’t find my red scarf; last had it near Bascom Hall. a worn label.,Bascom Hall,2026-05-30,campus app message,F024,G024
+L025,lost,lab notebook,books_notes,yellow,,Lost my yellow lab notebook near Engineering Hall. It has a small scratch.,Engineering Hall,2026-04-05,campus app message,F025,G025
+L026,lost,pencil case,miscellaneous,purple,,I think I left a purple pencil case around Wisconsin Union Theater after class. a zipper pocket.,Wisconsin Union Theater,2026-06-12,campus app message,F026,G026
+L027,lost,bike helmet,miscellaneous,white,Giro,Lost white bike helmet at Dejope Residence Hall. It might be near the seating area. a small scratch,Dejope Residence Hall,2026-06-02,campus app message,F027,G027
+L028,lost,water bottle,bottle,pink,Stanley,Lost my pink Stanley water bottle near Witte Residence Hall. It has a small scratch.,Witte Residence Hall,2026-04-01,campus app message,F028,G028
+L029,lost,card holder,wallets_cards,blue,,I think I left a blue card holder around Business School after class. a small dent.,Business School,2026-04-01,campus app message,F029,G029
+L030,lost,ipad,electronics,silver,Apple,Can’t find my silver Apple ipad; last had it near Education Building. a small dent.,Education Building,2026-03-02,campus app message,F030,G030
+L031,lost,sunglasses,miscellaneous,brown,,I think I left a brown sunglasses around State Street after class. a keychain attached.,State Street,2026-04-21,campus app message,F031,G031
+L032,lost,beanie,clothing,black,,Lost my black beanie near Camp Randall. It has no visible name.,Camp Randall,2026-04-06,campus app message,F032,G032
+L033,lost,folder,books_notes,orange,,Lost orange folder at Van Vleck Hall. It might be near the seating area. a zipper pocket,Van Vleck Hall,2026-03-08,campus app message,F033,G033
+L034,lost,lanyard,wallets_cards,red,UW-Madison,"Missing UW-Madison lanyard, red, last seen at Union South. Please message me if found.",Union South,2026-05-04,campus app message,F034,G034
+L035,lost,keyboard,electronics,gray,Logitech,Lost my gray Logitech keyboard near Computer Sciences Building. It has my initials inside.,Computer Sciences Building,2026-03-09,campus app message,F035,G035
+L036,lost,mouse,electronics,black,Logitech,Lost black mouse at Grainger Hall. It might be near the seating area. a keychain attached,Grainger Hall,2026-03-06,campus app message,F036,G036
+L037,lost,duffel bag,bags,navy,Adidas,Can’t find my navy Adidas duffel bag; last had it near SERF. a worn label.,SERF,2026-05-25,campus app message,F037,G037
+L038,lost,water bottle,bottle,clear,Nalgene,Lost clear water bottle at Bakke Recreation Center. It might be near the seating area. course notes inside,Bakke Recreation Center,2026-06-05,campus app message,F038,G038
+L039,lost,planner,books_notes,white,,Can’t find my white planner; last had it near Memorial Library. a small dent.,Memorial Library,2026-03-28,campus app message,F039,G039
+L040,lost,bracelet,jewelry_accessories,silver,,Lost my silver bracelet near Kohl Center. It has a campus sticker.,Kohl Center,2026-04-26,campus app message,F040,G040
+L041,lost,raincoat,clothing,yellow,,Can’t find my yellow raincoat; last had it near Lakeshore Path. course notes inside.,Lakeshore Path,2026-04-08,campus app message,F041,G041
+L042,lost,tablet pen,electronics,white,Apple,"Missing Apple tablet pen, white, last seen at College Library. Please message me if found.",College Library,2026-03-20,campus app message,F042,G042
+L043,lost,makeup pouch,miscellaneous,pink,,"Missing makeup pouch, pink, last seen at Sellery Residence Hall. Please message me if found.",Sellery Residence Hall,2026-04-02,campus app message,F043,G043
+L044,lost,travel mug,bottle,green,Yeti,Lost my green Yeti travel mug near Grainger Hall. It has a sticker on it.,Grainger Hall,2026-04-12,campus app message,F044,G044
+L045,lost,book,books_notes,black,,I think I left a black book around Humanities Building after class. course notes inside.,Humanities Building,2026-03-15,campus app message,F045,G045
+L046,lost,earbuds,electronics,white,Samsung,Can’t find my white Samsung earbuds; last had it near Engineering Hall. my initials inside.,Engineering Hall,2026-03-19,campus app message,F046,G046
+L047,lost,glove,clothing,black,,"Missing glove, black, last seen at Bascom Hall. Please message me if found.",Bascom Hall,2026-05-25,campus app message,F047,G047
+L048,lost,portable charger,electronics,black,Anker,Lost black portable charger at Memorial Union. It might be near the seating area. a zipper pocket,Memorial Union,2026-06-11,campus app message,F048,G048
+L049,lost,crossbody bag,bags,brown,,I think I left a brown crossbody bag around State Street after class. a sticker on it.,State Street,2026-04-04,campus app message,F049,G049
+L050,lost,notebook,books_notes,pink,,Lost pink notebook at Witte Residence Hall. It might be near the seating area. a small scratch,Witte Residence Hall,2026-06-13,campus app message,F050,G050
+L051,lost,camera,electronics,black,Canon,I think I left a black camera around Nicholas Recreation Center after class. a keychain attached.,Nicholas Recreation Center,2026-03-04,campus app message,,U_L051
+L052,lost,wallet,wallets_cards,green,,I think I left a green wallet around Memorial Library after class. no visible name.,Memorial Library,2026-04-12,campus app message,,U_L052
+L053,lost,keys,keys,gold,,Lost my gold keys near Business School. It has course notes inside.,Business School,2026-04-14,campus app message,,U_L053
+L054,lost,water bottle,bottle,orange,CamelBak,Can’t find my orange CamelBak water bottle; last had it near Lakeshore Path. no visible name.,Lakeshore Path,2026-05-26,campus app message,,U_L054
+L055,lost,hoodie,clothing,blue,Champion,"Missing Champion hoodie, blue, last seen at State Street. Please message me if found.",State Street,2026-03-15,campus app message,,U_L055
+L056,lost,backpack,bags,red,Jansport,I think I left a red backpack around Business School after class. a worn label.,Business School,2026-04-03,campus app message,,U_L056
+L057,lost,textbook,books_notes,white,McGraw Hill,Lost my white McGraw Hill textbook near Memorial Union. It has a worn label.,Memorial Union,2026-04-25,campus app message,,U_L057
+L058,lost,watch,jewelry_accessories,black,Fitbit,"Missing Fitbit watch, black, last seen at Dejope Residence Hall. Please message me if found.",Dejope Residence Hall,2026-05-17,campus app message,,U_L058
+L059,lost,umbrella,umbrellas,black,,Lost my black umbrella near Chazen Museum. It has no visible name.,Chazen Museum,2026-05-13,campus app message,,U_L059
+L060,lost,calculator,electronics,blue,Casio,"Missing Casio calculator, blue, last seen at Engineering Hall. Please message me if found.",Engineering Hall,2026-05-30,campus app message,,U_L060
+L061,lost,binder,books_notes,black,,Lost my black binder near Witte Residence Hall. It has a zipper pocket.,Witte Residence Hall,2026-06-12,campus app message,,U_L061
+L062,lost,phone charger,electronics,black,Belkin,I think I left a black phone charger around State Street after class. a campus sticker.,State Street,2026-04-25,campus app message,,U_L062
+L063,lost,wallet,wallets_cards,pink,,"Missing wallet, pink, last seen at College Library. Please message me if found.",College Library,2026-04-10,campus app message,,U_L063
+L064,lost,water bottle,bottle,purple,Contigo,Lost my purple Contigo water bottle near Memorial Library. It has course notes inside.,Memorial Library,2026-05-04,campus app message,,U_L064
+L065,lost,jacket,clothing,green,Patagonia,Lost green jacket at Nicholas Recreation Center. It might be near the seating area. a campus sticker,Nicholas Recreation Center,2026-04-21,campus app message,,U_L065
+L066,lost,tote bag,bags,yellow,,"Missing tote bag, yellow, last seen at Wisconsin Union Theater. Please message me if found.",Wisconsin Union Theater,2026-03-17,campus app message,,U_L066
+L067,lost,ID holder,wallets_cards,clear,,Lost clear ID holder at Engineering Hall. It might be near the seating area. no visible name,Engineering Hall,2026-05-26,campus app message,,U_L067
+L068,lost,rings,jewelry_accessories,silver,,I think I left a silver rings around Bakke Recreation Center after class. a worn label.,Bakke Recreation Center,2026-05-12,campus app message,,U_L068
+L069,lost,notebook,books_notes,blue,,Lost blue notebook at Nicholas Recreation Center. It might be near the seating area. a zipper pocket,Nicholas Recreation Center,2026-03-01,campus app message,,U_L069
+L070,lost,sweater,clothing,cream,,"Missing sweater, cream, last seen at Nicholas Recreation Center. Please message me if found.",Nicholas Recreation Center,2026-04-25,campus app message,,U_L070
+L071,lost,laptop sleeve,bags,gray,,Can’t find my gray laptop sleeve; last had it near Camp Randall. a campus sticker.,Camp Randall,2026-04-29,campus app message,,U_L071
+L072,lost,earbuds case,electronics,lavender,JBL,Lost lavender earbuds case at Bascom Hall. It might be near the seating area. a keychain attached,Bascom Hall,2026-05-05,campus app message,,U_L072
+L073,lost,mug,bottle,white,Starbucks,I think I left a white mug around Education Building after class. a small scratch.,Education Building,2026-04-06,campus app message,,U_L073
+L074,lost,folder,books_notes,purple,,Can’t find my purple folder; last had it near Chazen Museum. a campus sticker.,Chazen Museum,2026-03-12,campus app message,,U_L074
+L075,lost,sunglasses,miscellaneous,black,Oakley,I think I left a black sunglasses around Humanities Building after class. course notes inside.,Humanities Building,2026-03-29,campus app message,,U_L075
+L076,lost,scarf,clothing,green,,I think I left a green scarf around Engineering Hall after class. a sticker on it.,Engineering Hall,2026-03-06,campus app message,,U_L076
+L077,lost,lab goggles,miscellaneous,clear,,Lost clear lab goggles at Grainger Hall. It might be near the seating area. a worn label,Grainger Hall,2026-06-07,campus app message,,U_L077
+L078,lost,pencil pouch,miscellaneous,black,,Lost black pencil pouch at College Library. It might be near the seating area. no visible name,College Library,2026-05-20,campus app message,,U_L078
+L079,lost,charger block,electronics,white,Apple,I think I left a white charger block around Camp Randall after class. no visible name.,Camp Randall,2026-05-03,campus app message,,U_L079
+L080,lost,beanie,clothing,gray,,I think I left a gray beanie around Sellery Residence Hall after class. my initials inside.,Sellery Residence Hall,2026-05-23,campus app message,,U_L080
+F001,found,dark water bottle,bottle,dark,,Someone left a black hydroflask at Union South. Looks dark. my initials inside.,Union South,2026-06-03,residence hall desk,L001,G001
+F002,found,white laptop charger,electronics,white,,There is a white white laptop charger at Computer Sciences Building. I can meet or leave it at the desk.,Computer Sciences Building,2026-03-12,library circulation desk,L002,G002
+F003,found,student ID card,wallets_cards,red,,There is a red Wiscard at College Library. I can meet or leave it at the desk.,College Library,2026-04-23,library circulation desk,L003,G003
+F004,found,small tan wallet,wallets_cards,tan,,Picked up a tan small tan wallet around Memorial Union. Message with details to confirm.,Memorial Union,2026-03-20,department office,L004,G004
+F005,found,blue folded umbrella,umbrellas,dark blue,Totes,Found a dark blue blue folded umbrella near Van Vleck Hall. Left it with campus app message.,Van Vleck Hall,2026-04-14,department office,L005,G005
+F006,found,small white earbuds case,electronics,white,,There is a white AirPods case at Grainger Hall. I can meet or leave it at the desk.,Grainger Hall,2026-05-10,residence hall desk,L006,G006
+F007,found,spiral notes,books_notes,green,Moleskine,There is a green green notebook at Engineering Hall. I can meet or leave it at the desk.,Engineering Hall,2026-03-06,department office,L007,G007
+F008,found,dark school bag,bags,dark,North Face,Picked up a dark black backpack around Nicholas Recreation Center. Message with details to confirm.,Nicholas Recreation Center,2026-04-28,front desk pickup,L008,G008
+F009,found,set of keys,keys,silver,,Someone left a key ring at Sellery Residence Hall. Looks silver. course notes inside.,Sellery Residence Hall,2026-05-29,residence hall desk,L009,G009
+F010,found,grey sweatshirt,clothing,grey,,Picked up a grey gray hoodie around SERF. Message with details to confirm.,SERF,2026-04-18,residence hall desk,L010,G010
+F011,found,black graphing calculator,electronics,dark,,Someone left a TI calculator at Van Vleck Hall. Looks dark. a sticker on it.,Van Vleck Hall,2026-06-12,front desk pickup,L011,G011
+F012,found,small gold band,jewelry_accessories,gold,,There is a gold small gold band at Chazen Museum. I can meet or leave it at the desk.,Chazen Museum,2026-04-20,residence hall desk,L012,G012
+F013,found,small studs,jewelry_accessories,silver,,Someone left a silver earrings at Bakke Recreation Center. Looks silver. a zipper pocket.,Bakke Recreation Center,2026-05-08,library circulation desk,L013,G013
+F014,found,plastic lunch container,miscellaneous,blue,Bentgo,Found blue plastic lunch container outside Education Building; turned into email.,Education Building,2026-05-05,department office,L014,G014
+F015,found,blue course book,books_notes,blue,,Picked up a blue biology textbook around Memorial Library. Message with details to confirm.,Memorial Library,2026-05-16,security desk,L015,G015
+F016,found,dark coat,clothing,dark,Columbia,There is a dark dark coat at Camp Randall. I can meet or leave it at the desk.,Camp Randall,2026-05-27,residence hall desk,L016,G016
+F017,found,black phone,electronics,dark,iPhone,Someone left a iPhone at State Street. Looks dark. no visible name.,State Street,2026-03-21,residence hall desk,L017,G017
+F018,found,white charging cord,electronics,white,Anker,Picked up a white usb c cable around Helen C. White Library. Message with details to confirm.,Helen C. White Library,2026-05-21,email,L018,G018
+F019,found,reading glasses,miscellaneous,dark,,Picked up a dark black glasses around Humanities Building. Message with details to confirm.,Humanities Building,2026-05-02,front desk pickup,L019,G019
+F020,found,cream tote bag,bags,off-white,Trader Joe's,Found a off-white canvas tote near Memorial Union. Left it with library circulation desk.,Memorial Union,2026-03-11,department office,L020,G020
+F021,found,blue water bottle,bottle,blue,,Picked up a blue blue owala bottle around Lakeshore Path. Message with details to confirm.,Lakeshore Path,2026-05-10,library circulation desk,L021,G021
+F022,found,card holder,wallets_cards,dark,,Picked up a dark black wallet around Kohl Center. Message with details to confirm.,Kohl Center,2026-04-21,residence hall desk,L022,G022
+F023,found,black over-ear headphones,electronics,dark,,There is a dark black over-ear headphones at College Library. I can meet or leave it at the desk.,College Library,2026-03-29,campus app message,L023,G023
+F024,found,maroon scarf,clothing,red,,Picked up a red red scarf around Bascom Hall. Message with details to confirm.,Bascom Hall,2026-05-30,email,L024,G024
+F025,found,chem notes,books_notes,yellow,,Someone left a yellow lab notebook at Engineering Hall. Looks yellow. a keychain attached.,Engineering Hall,2026-04-05,email,L025,G025
+F026,found,pencil case,miscellaneous,purple,,There is a purple pencil case at Wisconsin Union Theater. I can meet or leave it at the desk.,Wisconsin Union Theater,2026-06-12,campus app message,L026,G026
+F027,found,bike helmet,miscellaneous,white,,Someone left a bike helmet at Dejope Residence Hall. Looks white. a small dent.,Dejope Residence Hall,2026-06-02,residence hall desk,L027,G027
+F028,found,pink cup,bottle,pink,,Found pink pink cup outside Witte Residence Hall; turned into department office.,Witte Residence Hall,2026-04-01,library circulation desk,L028,G028
+F029,found,small wallet,wallets_cards,blue,,Found blue blue card holder outside Business School; turned into front desk pickup.,Business School,2026-04-01,campus app message,L029,G029
+F030,found,tablet,electronics,silver,Apple,Found a silver silver ipad near Education Building. Left it with residence hall desk.,Education Building,2026-03-02,department office,L030,G030
+F031,found,tortoise shades,miscellaneous,tan,,Found tan tortoise shades outside State Street; turned into security desk.,State Street,2026-04-21,email,L031,G031
+F032,found,winter hat,clothing,dark,,Found dark winter hat outside Camp Randall; turned into department office.,Camp Randall,2026-04-06,residence hall desk,L032,G032
+F033,found,math folder,books_notes,orange,,Picked up a orange orange folder around Van Vleck Hall. Message with details to confirm.,Van Vleck Hall,2026-03-08,library circulation desk,L033,G033
+F034,found,uw lanyard,wallets_cards,red,UW-Madison,Found a red red lanyard near Union South. Left it with library circulation desk.,Union South,2026-05-04,library circulation desk,L034,G034
+F035,found,gray logitech keyboard,electronics,grey,Logitech,There is a grey wireless keyboard at Computer Sciences Building. I can meet or leave it at the desk.,Computer Sciences Building,2026-03-09,residence hall desk,L035,G035
+F036,found,black mouse,electronics,dark,Logitech,Found a dark wireless mouse near Grainger Hall. Left it with library circulation desk.,Grainger Hall,2026-03-06,security desk,L036,G036
+F037,found,duffel,bags,dark blue,Adidas,There is a dark blue duffel at SERF. I can meet or leave it at the desk.,SERF,2026-05-25,email,L037,G037
+F038,found,transparent bottle,bottle,transparent,Nalgene,Picked up a transparent transparent bottle around Bakke Recreation Center. Message with details to confirm.,Bakke Recreation Center,2026-06-05,campus app message,L038,G038
+F039,found,agenda notebook,books_notes,white,,There is a white white planner at Memorial Library. I can meet or leave it at the desk.,Memorial Library,2026-03-28,email,L039,G039
+F040,found,chain bracelet,jewelry_accessories,silver,,Picked up a silver chain bracelet around Kohl Center. Message with details to confirm.,Kohl Center,2026-04-26,residence hall desk,L040,G040
+F041,found,rain jacket,clothing,yellow,,There is a yellow yellow raincoat at Lakeshore Path. I can meet or leave it at the desk.,Lakeshore Path,2026-04-08,campus app message,L041,G041
+F042,found,white stylus,electronics,white,,Found a white apple pencil near College Library. Left it with residence hall desk.,College Library,2026-03-20,library circulation desk,L042,G042
+F043,found,cosmetic pouch,miscellaneous,pink,,Picked up a pink cosmetic pouch around Sellery Residence Hall. Message with details to confirm.,Sellery Residence Hall,2026-04-02,department office,L043,G043
+F044,found,coffee tumbler,bottle,green,Yeti,Found green coffee tumbler outside Grainger Hall; turned into campus app message.,Grainger Hall,2026-04-12,residence hall desk,L044,G044
+F045,found,novel,books_notes,dark,,Found dark novel outside Humanities Building; turned into library circulation desk.,Humanities Building,2026-03-15,residence hall desk,L045,G045
+F046,found,white earbuds,electronics,white,Samsung,Found a white white earbuds near Engineering Hall. Left it with library circulation desk.,Engineering Hall,2026-03-19,campus app message,L046,G046
+F047,found,winter glove,clothing,dark,,Found a dark winter glove near Bascom Hall. Left it with email.,Bascom Hall,2026-05-25,department office,L047,G047
+F048,found,portable battery,electronics,dark,Anker,There is a dark black power bank at Memorial Union. I can meet or leave it at the desk.,Memorial Union,2026-06-11,security desk,L048,G048
+F049,found,small shoulder bag,bags,tan,,Someone left a small shoulder bag at State Street. Looks tan. a keychain attached.,State Street,2026-04-04,residence hall desk,L049,G049
+F050,found,class notes,books_notes,pink,,Found a pink class notes near Witte Residence Hall. Left it with email.,Witte Residence Hall,2026-06-13,front desk pickup,L050,G050
+F051,found,water bottle,bottle,dark,Simple Modern,Found a dark water bottle near Wisconsin Union Theater. Left it with department office.,Wisconsin Union Theater,2026-06-08,security desk,,U_F051
+F052,found,laptop charger,electronics,grey,Dell,Picked up a grey laptop charger around Grainger Hall. Message with details to confirm.,Grainger Hall,2026-04-29,campus app message,,U_F052
+F053,found,student ID,wallets_cards,white,Wiscard,Picked up a white student ID around State Street. Message with details to confirm.,State Street,2026-04-28,email,,U_F053
+F054,found,wallet,wallets_cards,dark,,There is a dark wallet at Bascom Hall. I can meet or leave it at the desk.,Bascom Hall,2026-04-10,department office,,U_F054
+F055,found,umbrella,umbrellas,red,,There is a red umbrella at Bascom Hall. I can meet or leave it at the desk.,Bascom Hall,2026-04-24,department office,,U_F055
+F056,found,airpods,electronics,white,Apple,Found white airpods outside State Street; turned into email.,State Street,2026-04-27,front desk pickup,,U_F056
+F057,found,notebook,books_notes,yellow,,Picked up a yellow notebook around Humanities Building. Message with details to confirm.,Humanities Building,2026-06-07,department office,,U_F057
+F058,found,backpack,bags,blue,Herschel,Found blue backpack outside Chazen Museum; turned into residence hall desk.,Chazen Museum,2026-04-05,security desk,,U_F058
+F059,found,keys,keys,silver,,Someone left a keys at College Library. Looks silver. course notes inside.,College Library,2026-04-12,front desk pickup,,U_F059
+F060,found,hoodie,clothing,red,Adidas,Found a red hoodie near State Street. Left it with email.,State Street,2026-03-30,security desk,,U_F060
+F061,found,calculator,electronics,grey,Texas Instruments,Picked up a grey calculator around Wisconsin Union Theater. Message with details to confirm.,Wisconsin Union Theater,2026-03-09,security desk,,U_F061
+F062,found,necklace,jewelry_accessories,gold,,Someone left a necklace at Witte Residence Hall. Looks gold. a small dent.,Witte Residence Hall,2026-04-23,campus app message,,U_F062
+F063,found,earring,jewelry_accessories,gold,,Found gold earring outside Engineering Hall; turned into security desk.,Engineering Hall,2026-05-29,campus app message,,U_F063
+F064,found,lunch box,miscellaneous,green,,There is a green lunch box at Humanities Building. I can meet or leave it at the desk.,Humanities Building,2026-03-01,front desk pickup,,U_F064
+F065,found,textbook,books_notes,green,,Found green textbook outside Nicholas Recreation Center; turned into department office.,Nicholas Recreation Center,2026-05-08,residence hall desk,,U_F065
+F066,found,jacket,clothing,dark blue,North Face,There is a dark blue jacket at Bakke Recreation Center. I can meet or leave it at the desk.,Bakke Recreation Center,2026-03-29,security desk,,U_F066
+F067,found,phone,electronics,white,iPhone,Someone left a phone at Grainger Hall. Looks white. a small dent.,Grainger Hall,2026-03-04,security desk,,U_F067
+F068,found,charger cable,electronics,dark,Anker,Found dark charger cable outside SERF; turned into residence hall desk.,SERF,2026-04-29,email,,U_F068
+F069,found,glasses,miscellaneous,tan,,There is a tan glasses at Kohl Center. I can meet or leave it at the desk.,Kohl Center,2026-05-15,library circulation desk,,U_F069
+F070,found,tote bag,bags,dark,,Found a dark tote bag near Memorial Library. Left it with campus app message.,Memorial Library,2026-03-18,department office,,U_F070
+F071,found,water bottle,bottle,dark blue,Hydro Flask,Picked up a dark blue water bottle around Bascom Hall. Message with details to confirm.,Bascom Hall,2026-04-18,front desk pickup,,U_F071
+F072,found,card holder,wallets_cards,tan,,Found tan card holder outside Engineering Hall; turned into front desk pickup.,Engineering Hall,2026-06-06,security desk,,U_F072
+F073,found,headphones,electronics,blue,Beats,Found blue headphones outside Business School; turned into front desk pickup.,Business School,2026-04-30,campus app message,,U_F073
+F074,found,scarf,clothing,pink,,There is a pink scarf at Bakke Recreation Center. I can meet or leave it at the desk.,Bakke Recreation Center,2026-03-29,residence hall desk,,U_F074
+F075,found,lab notebook,books_notes,green,,Found a green lab notebook near College Library. Left it with department office.,College Library,2026-04-01,email,,U_F075
+F076,found,pencil case,miscellaneous,blue,,There is a blue pencil case at Union South. I can meet or leave it at the desk.,Union South,2026-03-17,security desk,,U_F076
+F077,found,bike helmet,miscellaneous,dark,,Found a dark bike helmet near Memorial Library. Left it with library circulation desk.,Memorial Library,2026-04-29,residence hall desk,,U_F077
+F078,found,travel cup,bottle,pink,Stanley,Someone left a travel cup at Business School. Looks pink. a worn label.,Business School,2026-05-17,residence hall desk,,U_F078
+F079,found,ID lanyard,wallets_cards,red,UW-Madison,Found a red ID lanyard near Wisconsin Union Theater. Left it with department office.,Wisconsin Union Theater,2026-04-09,campus app message,,U_F079
+F080,found,tablet,electronics,dark,Samsung,Found a dark tablet near Camp Randall. Left it with front desk pickup.,Camp Randall,2026-05-26,security desk,,U_F080
+F081,found,sunglasses,miscellaneous,dark,,Picked up a dark sunglasses around Sellery Residence Hall. Message with details to confirm.,Sellery Residence Hall,2026-05-28,department office,,U_F081
+F082,found,winter hat,clothing,white,,Picked up a white winter hat around Lakeshore Path. Message with details to confirm.,Lakeshore Path,2026-05-27,library circulation desk,,U_F082
+F083,found,folder,books_notes,blue,,There is a blue folder at Helen C. White Library. I can meet or leave it at the desk.,Helen C. White Library,2026-04-14,library circulation desk,,U_F083
+F084,found,lanyard,wallets_cards,dark,,Someone left a lanyard at Witte Residence Hall. Looks dark. a zipper pocket.,Witte Residence Hall,2026-05-22,front desk pickup,,U_F084
+F085,found,keyboard,electronics,dark,Logitech,Found dark keyboard outside Union South; turned into department office.,Union South,2026-03-14,security desk,,U_F085
+F086,found,mouse,electronics,grey,Microsoft,Found grey mouse outside Dejope Residence Hall; turned into residence hall desk.,Dejope Residence Hall,2026-04-25,email,,U_F086
+F087,found,gym bag,bags,dark,Nike,There is a dark gym bag at Bakke Recreation Center. I can meet or leave it at the desk.,Bakke Recreation Center,2026-05-18,department office,,U_F087
+F088,found,water bottle,bottle,green,Nalgene,Found green water bottle outside State Street; turned into security desk.,State Street,2026-06-14,residence hall desk,,U_F088
+F089,found,planner,books_notes,pink,,Someone left a planner at Camp Randall. Looks pink. a keychain attached.,Camp Randall,2026-03-12,front desk pickup,,U_F089
+F090,found,bracelet,jewelry_accessories,gold,,Picked up a gold bracelet around Bascom Hall. Message with details to confirm.,Bascom Hall,2026-05-12,library circulation desk,,U_F090
+F091,found,raincoat,clothing,blue,,Found blue raincoat outside Memorial Library; turned into front desk pickup.,Memorial Library,2026-05-03,department office,,U_F091
+F092,found,stylus,electronics,dark,Apple,Picked up a dark stylus around SERF. Message with details to confirm.,SERF,2026-04-15,department office,,U_F092
+F093,found,makeup pouch,miscellaneous,dark,,Someone left a makeup pouch at Business School. Looks dark. a worn label.,Business School,2026-05-29,front desk pickup,,U_F093
+F094,found,travel mug,bottle,white,Yeti,Found a white travel mug near State Street. Left it with library circulation desk.,State Street,2026-03-11,email,,U_F094
+F095,found,book,books_notes,red,,Found red book outside Bakke Recreation Center; turned into security desk.,Bakke Recreation Center,2026-06-06,email,,U_F095
+F096,found,earbuds,electronics,dark,Samsung,Found dark earbuds outside Wisconsin Union Theater; turned into residence hall desk.,Wisconsin Union Theater,2026-04-27,department office,,U_F096
+F097,found,glove,clothing,grey,,Found a grey glove near Union South. Left it with front desk pickup.,Union South,2026-04-21,residence hall desk,,U_F097
+F098,found,portable charger,electronics,white,Anker,Someone left a portable charger at Grainger Hall. Looks white. a worn label.,Grainger Hall,2026-04-17,security desk,,U_F098
+F099,found,shoulder bag,bags,dark,,There is a dark shoulder bag at State Street. I can meet or leave it at the desk.,State Street,2026-06-04,library circulation desk,,U_F099
+F100,found,notebook,books_notes,orange,,Someone left a notebook at SERF. Looks orange. a small dent.,SERF,2026-04-04,front desk pickup,,U_F100
+F101,found,wallet,wallets_cards,dark blue,,Picked up a dark blue wallet around Business School. Message with details to confirm.,Business School,2026-04-10,campus app message,,U_F101
+F102,found,keys,keys,gold,,There is a gold keys at Bakke Recreation Center. I can meet or leave it at the desk.,Bakke Recreation Center,2026-03-25,email,,U_F102
+F103,found,cap,clothing,red,Nike,Found red cap outside Bakke Recreation Center; turned into front desk pickup.,Bakke Recreation Center,2026-06-06,library circulation desk,,U_F103
+F104,found,water bottle,bottle,silver,ThermoFlask,Someone left a water bottle at Kohl Center. Looks silver. a keychain attached.,Kohl Center,2026-04-07,email,,U_F104
+F105,found,laptop sleeve,bags,dark,,Picked up a dark laptop sleeve around Dejope Residence Hall. Message with details to confirm.,Dejope Residence Hall,2026-05-30,library circulation desk,,U_F105
+F106,found,book,books_notes,blue,,Someone left a book at Computer Sciences Building. Looks blue. a sticker on it.,Computer Sciences Building,2026-05-10,front desk pickup,,U_F106
+F107,found,charger,electronics,white,Apple,Picked up a white charger around Wisconsin Union Theater. Message with details to confirm.,Wisconsin Union Theater,2026-03-14,department office,,U_F107
+F108,found,umbrella,umbrellas,dark,Totes,There is a dark umbrella at Union South. I can meet or leave it at the desk.,Union South,2026-05-01,security desk,,U_F108
+F109,found,ring,jewelry_accessories,silver,,Picked up a silver ring around SERF. Message with details to confirm.,SERF,2026-05-01,campus app message,,U_F109
+F110,found,ID card,wallets_cards,red,Wiscard,Found red ID card outside College Library; turned into security desk.,College Library,2026-05-13,residence hall desk,,U_F110
+F111,found,backpack,bags,grey,Adidas,Found a grey backpack near Memorial Library. Left it with email.,Memorial Library,2026-06-12,library circulation desk,,U_F111
+F112,found,notebook,books_notes,dark,,Found a dark notebook near Nicholas Recreation Center. Left it with email.,Nicholas Recreation Center,2026-05-11,department office,,U_F112
+F113,found,headphones,electronics,white,Sony,There is a white headphones at Witte Residence Hall. I can meet or leave it at the desk.,Witte Residence Hall,2026-03-29,department office,,U_F113
+F114,found,scarf,clothing,grey,,Found grey scarf outside Chazen Museum; turned into security desk.,Chazen Museum,2026-04-08,department office,,U_F114
+F115,found,pouch,miscellaneous,purple,,Found purple pouch outside Camp Randall; turned into front desk pickup.,Camp Randall,2026-05-19,campus app message,,U_F115
+F116,found,glasses case,miscellaneous,dark,,Found a dark glasses case near Kohl Center. Left it with department office.,Kohl Center,2026-05-20,email,,U_F116
+F117,found,bottle,bottle,transparent,Owala,Found a transparent bottle near Business School. Left it with email.,Business School,2026-03-23,library circulation desk,,U_F117
+F118,found,calculator,electronics,dark,Casio,Picked up a dark calculator around College Library. Message with details to confirm.,College Library,2026-04-27,residence hall desk,,U_F118
+F119,found,sweatshirt,clothing,green,,Found green sweatshirt outside Kohl Center; turned into front desk pickup.,Kohl Center,2026-03-30,front desk pickup,,U_F119
+F120,found,lunch bag,miscellaneous,blue,,Someone left a lunch bag at Wisconsin Union Theater. Looks blue. a small dent.,Wisconsin Union Theater,2026-03-10,residence hall desk,,U_F120

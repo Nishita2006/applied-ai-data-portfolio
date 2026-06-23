@@ -1,0 +1,4 @@
+metric,text_only,hybrid
+Top-1 Accuracy,0.74,0.9
+Top-3 Accuracy,0.84,1.0
+Top-5 Accuracy,0.9,1.0
