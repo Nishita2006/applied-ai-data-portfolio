@@ -1,3 +1,7 @@
+## Live Demo
+
+Try the app here: https://campus-lost-found-ai-matcher.streamlit.app
+
 # Campus Lost & Found AI Matcher
 
 An AI-powered Streamlit app that matches lost item reports with possible found item reports using NLP text similarity, metadata-based scoring, confidence labels, and explainable match reasons.
