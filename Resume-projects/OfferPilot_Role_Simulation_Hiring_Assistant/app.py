@@ -188,6 +188,23 @@ if "heatmap_df" not in st.session_state:
 if "simulation_task" not in st.session_state:
     st.session_state.simulation_task = ""
 
+# Saved simulation review data
+if "candidate_responses" not in st.session_state:
+    st.session_state.candidate_responses = {}
+
+if "candidate_rubric_scores" not in st.session_state:
+    st.session_state.candidate_rubric_scores = {}
+
+if "candidate_signal_cards" not in st.session_state:
+    st.session_state.candidate_signal_cards = {}
+
+# Active text box state
+if "current_candidate_answer" not in st.session_state:
+    st.session_state.current_candidate_answer = ""
+
+if "last_selected_candidate" not in st.session_state:
+    st.session_state.last_selected_candidate = ""
+
 
 # -----------------------------
 # App tabs
@@ -286,7 +303,6 @@ with tab2:
                 resume_text = extract_text_from_pdf(resume)
                 resume_role_skills, resume_soft_skills = jd_skill_extractor(resume_text)
 
-                # Match resume skills against JD skills
                 matched_skills, missing_skills, match_score = calculate_match_score(
                     st.session_state.jd_role_skills,
                     resume_role_skills
@@ -308,7 +324,6 @@ with tab2:
                     "Resume Skills": ", ".join(resume_role_skills)
                 })
 
-                # Build heatmap row
                 heatmap_row = {"Candidate": resume.name}
 
                 for skill in st.session_state.jd_role_skills:
@@ -335,6 +350,26 @@ with tab2:
 
             st.session_state.candidate_df = candidate_df
             st.session_state.heatmap_df = heatmap_df
+
+            current_candidates = set(candidate_df["Candidate"].tolist())
+
+            st.session_state.candidate_responses = {
+                candidate: response
+                for candidate, response in st.session_state.candidate_responses.items()
+                if candidate in current_candidates
+            }
+
+            st.session_state.candidate_rubric_scores = {
+                candidate: scores
+                for candidate, scores in st.session_state.candidate_rubric_scores.items()
+                if candidate in current_candidates
+            }
+
+            st.session_state.candidate_signal_cards = {
+                candidate: card
+                for candidate, card in st.session_state.candidate_signal_cards.items()
+                if candidate in current_candidates
+            }
 
             st.success("Candidate screening completed.")
 
@@ -411,20 +446,42 @@ with tab4:
 
         selected_candidate = st.selectbox(
             "Select candidate",
-            candidate_names
+            candidate_names,
+            key="selected_candidate_for_simulation"
         )
 
-        candidate_answer = st.text_area(
+        # When switching candidates, load that candidate's saved response
+        if st.session_state.last_selected_candidate != selected_candidate:
+            st.session_state.current_candidate_answer = st.session_state.candidate_responses.get(
+                selected_candidate,
+                ""
+            )
+            st.session_state.last_selected_candidate = selected_candidate
+
+        st.text_area(
             "Paste the candidate's simulation response here",
-            height=220
+            height=220,
+            key="current_candidate_answer"
         )
 
-        if st.button("Score Candidate Response"):
-            if candidate_answer.strip() == "":
+        col_save, col_clear = st.columns(2)
+
+        with col_save:
+            save_clicked = st.button("Score Response and Save Review")
+
+        with col_clear:
+            clear_clicked = st.button("Clear Current Response")
+
+        if clear_clicked:
+            st.session_state.current_candidate_answer = ""
+            st.rerun()
+
+        if save_clicked:
+            if st.session_state.current_candidate_answer.strip() == "":
                 st.warning("Please paste the candidate's response first.")
             else:
                 rubric_scores = score_simulation_response(
-                    candidate_answer,
+                    st.session_state.current_candidate_answer,
                     st.session_state.category
                 )
 
@@ -451,58 +508,139 @@ with tab4:
                     missing_skills_list
                 )
 
-                st.success("Candidate response scored successfully.")
+                st.session_state.candidate_responses[selected_candidate] = (
+                    st.session_state.current_candidate_answer
+                )
+                st.session_state.candidate_rubric_scores[selected_candidate] = rubric_scores
+                st.session_state.candidate_signal_cards[selected_candidate] = signal_card
 
-                col1, col2, col3 = st.columns(3)
-
-                col1.metric(
-                    "Resume Match",
-                    str(selected_candidate_row["Match Score"]) + "%"
+                st.success(
+                    f"Saved response, rubric score, and signal card for {selected_candidate}."
                 )
 
-                col2.metric(
-                    "Simulation Score",
-                    str(rubric_scores["Simulation Score"]) + "%"
-                )
+        if selected_candidate in st.session_state.candidate_signal_cards:
+            selected_candidate_row = st.session_state.candidate_df[
+                st.session_state.candidate_df["Candidate"] == selected_candidate
+            ].iloc[0]
 
-                col3.metric(
-                    "Final Confidence",
-                    signal_card["Final Confidence"]
-                )
+            saved_rubric_scores = st.session_state.candidate_rubric_scores[selected_candidate]
+            saved_signal_card = st.session_state.candidate_signal_cards[selected_candidate]
+            saved_response = st.session_state.candidate_responses[selected_candidate]
 
-                with st.expander("View Submitted Response"):
-                    st.write(candidate_answer)
+            col1, col2, col3 = st.columns(3)
 
-                st.subheader("Rubric Score")
+            col1.metric(
+                "Resume Match",
+                str(selected_candidate_row["Match Score"]) + "%"
+            )
 
-                score_df = pd.DataFrame(
-                    list(rubric_scores.items()),
-                    columns=["Rubric Area", "Score"]
-                )
+            col2.metric(
+                "Simulation Score",
+                str(saved_rubric_scores["Simulation Score"]) + "%"
+            )
 
-                st.dataframe(score_df, use_container_width=True)
+            col3.metric(
+                "Final Confidence",
+                saved_signal_card["Final Confidence"]
+            )
 
-                st.subheader("Candidate Signal Card")
+            with st.expander("View Saved Submitted Response"):
+                st.write(saved_response)
 
-                st.markdown(
-                    f"""
-                    <div class="section-card">
-                        <div class="card-title">{selected_candidate}</div>
-                        <div class="card-text"><b>Final Confidence:</b> {signal_card["Final Confidence"]}</div>
-                        <div class="card-text"><b>Recommended Next Step:</b> {signal_card["Recommended Next Step"]}</div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
+            st.subheader("Rubric Score")
 
-                card_col1, card_col2 = st.columns(2)
+            score_df = pd.DataFrame(
+                list(saved_rubric_scores.items()),
+                columns=["Rubric Area", "Score"]
+            )
 
-                with card_col1:
-                    st.markdown("### Strengths")
-                    for strength in signal_card["Strengths"]:
-                        st.success(strength)
+            st.dataframe(score_df, use_container_width=True)
 
-                with card_col2:
-                    st.markdown("### Risks")
-                    for risk in signal_card["Risks"]:
-                        st.warning(risk)
+            st.subheader("Candidate Signal Card")
+
+            st.markdown(
+                f"""
+                <div class="section-card">
+                    <div class="card-title">{selected_candidate}</div>
+                    <div class="card-text"><b>Final Confidence:</b> {saved_signal_card["Final Confidence"]}</div>
+                    <div class="card-text"><b>Recommended Next Step:</b> {saved_signal_card["Recommended Next Step"]}</div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+            card_col1, card_col2 = st.columns(2)
+
+            with card_col1:
+                st.markdown("### Strengths")
+                for strength in saved_signal_card["Strengths"]:
+                    st.success(strength)
+
+            with card_col2:
+                st.markdown("### Risks")
+                for risk in saved_signal_card["Risks"]:
+                    st.warning(risk)
+        else:
+            st.info("No saved simulation review for this candidate yet.")
+
+        st.divider()
+
+        st.subheader("Saved Candidate Reviews")
+
+        if len(st.session_state.candidate_signal_cards) == 0:
+            st.info("No candidate reviews saved yet.")
+        else:
+            for candidate_name, signal_card in st.session_state.candidate_signal_cards.items():
+                rubric_scores = st.session_state.candidate_rubric_scores[candidate_name]
+                response = st.session_state.candidate_responses[candidate_name]
+
+                with st.expander(candidate_name):
+                    review_row = st.session_state.candidate_df[
+                        st.session_state.candidate_df["Candidate"] == candidate_name
+                    ].iloc[0]
+
+                    col1, col2, col3 = st.columns(3)
+
+                    col1.metric(
+                        "Resume Match",
+                        str(review_row["Match Score"]) + "%"
+                    )
+
+                    col2.metric(
+                        "Simulation Score",
+                        str(rubric_scores["Simulation Score"]) + "%"
+                    )
+
+                    col3.metric(
+                        "Final Confidence",
+                        signal_card["Final Confidence"]
+                    )
+
+                    st.write(
+                        "**Recommended Next Step:**",
+                        signal_card["Recommended Next Step"]
+                    )
+
+                    st.write("**Saved Response:**")
+                    st.write(response)
+
+                    st.write("**Rubric Scores:**")
+                    st.dataframe(
+                        pd.DataFrame(
+                            list(rubric_scores.items()),
+                            columns=["Rubric Area", "Score"]
+                        ),
+                        use_container_width=True
+                    )
+
+                    review_col1, review_col2 = st.columns(2)
+
+                    with review_col1:
+                        st.markdown("**Strengths**")
+                        for strength in signal_card["Strengths"]:
+                            st.success(strength)
+
+                    with review_col2:
+                        st.markdown("**Risks**")
+                        for risk in signal_card["Risks"]:
+                            st.warning(risk)
