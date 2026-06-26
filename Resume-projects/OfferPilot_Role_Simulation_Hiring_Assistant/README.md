@@ -1,5 +1,7 @@
 # OfferPilot: Role Simulation Hiring Assistant
 
+**Live Demo:** https://offerpilot-hiring-assistant.streamlit.app/
+
 OfferPilot is a recruiter-facing resume screening and role simulation tool. It helps recruiters compare candidates against a job description, rank resumes by role fit, generate role-specific simulation tasks, score candidate responses using a structured rubric, and create a final candidate signal card.
 
 The project is designed to go beyond a basic resume matcher. Instead of only showing a resume match score, it combines resume-job fit with a practical simulation response to give recruiters a clearer view of candidate readiness.
@@ -63,7 +65,7 @@ Examples:
 * Data role: analyze a small dataset and explain insights
 * ML role: choose model evaluation metrics
 * SWE role: debug a performance issue
-* Finance/Risk role: review suspicious transactions
+* Finance / Risk role: review suspicious transactions
 * HR role: improve a recruiting process
 * Product role: choose feature launch metrics
 
@@ -98,13 +100,13 @@ The signal card includes:
 * Streamlit
 * Pandas
 * pypdf
-* Rule-based NLP/text matching
+* Rule-based NLP / text matching
 * Rubric-based scoring logic
 
 ## Project Structure
 
 ```text
-OfferPilot/
+OfferPilot_Role_Simulation_Hiring_Assistant/
 │
 ├── app.py
 ├── requirements.txt
@@ -125,8 +127,8 @@ OfferPilot/
 Clone the repository:
 
 ```bash
-git clone <your-repo-link>
-cd OfferPilot
+git clone https://github.com/Nishita2006/python-ml-journey.git
+cd python-ml-journey/Resume-projects/OfferPilot_Role_Simulation_Hiring_Assistant
 ```
 
 Install dependencies:
