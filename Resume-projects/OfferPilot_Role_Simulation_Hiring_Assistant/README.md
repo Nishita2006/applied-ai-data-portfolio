@@ -1,107 +1,133 @@
-# OfferPilot: Role Simulation Hiring Assistant
+# OfferPilot: LLM-Powered Role Simulation Hiring Assistant
 
-**Live Demo:** https://offerpilot-hiring-assistant.streamlit.app/
+OfferPilot is an LLM-powered hiring assistant that helps recruiters analyze job descriptions, screen resumes, generate role-specific work simulation tasks, score candidate responses, and create recruiter-ready signal cards.
 
-OfferPilot is a recruiter-facing resume screening and role simulation tool. It helps recruiters compare candidates against a job description, rank resumes by role fit, generate role-specific simulation tasks, score candidate responses using a structured rubric, and create a final candidate signal card.
+The project is designed to support an end-to-end candidate review workflow, combining resume matching, LLM reasoning, simulation-based assessment, and recruiter decision tracking.
 
-The project is designed to go beyond a basic resume matcher. Instead of only showing a resume match score, it combines resume-job fit with a practical simulation response to give recruiters a clearer view of candidate readiness.
+## Live Demo
 
-## Problem
+https://offerpilot-hiring-assistant.streamlit.app/
 
-Recruiters often review many resumes for the same role, and resumes can look very similar or overly polished. A simple keyword match does not always show whether a candidate can actually reason through role-specific tasks.
 
-OfferPilot helps by combining:
+## Project Overview
 
-* Resume and job description skill matching
-* Candidate ranking
-* Skill gap visibility
-* Role-specific work simulation
-* Rubric-based response scoring
-* Final candidate signal card
+Traditional resume screening often relies on manual review or simple keyword matching. OfferPilot improves this process by helping recruiters understand candidate fit from multiple signals:
 
-## Features
+* Job description analysis
+* Resume skill matching
+* Text similarity scoring
+* Role-specific simulation tasks
+* LLM-based rubric scoring
+* Candidate signal cards
+* Recruiter notes and decision tracking
 
-### Job Description Analysis
+The goal is not to replace recruiters, but to give them a clearer and more structured way to compare candidates.
+
+## Key Features
+
+### 1. Job Description Analysis
 
 Recruiters can paste a job description, and the app extracts:
 
+* Role title
 * Role category
-* Role-specific skills
+* Required technical skills
+* Preferred skills
 * Soft skills
+* Responsibilities
+* Seniority level
+* Ideal candidate summary
 
-Supported role categories include:
+The app uses an LLM when available and falls back to rule-based logic if the API key is not configured.
 
-* Data / Analytics
-* AI / ML
-* Software Engineering
-* Finance / Risk
-* HR / People Operations
-* Product / Business
-* General Internship
+### 2. Candidate Resume Screening
 
-### Candidate Resume Screening
+Recruiters can upload multiple resume PDFs. The app extracts resume text and ranks candidates using a hybrid matching approach.
 
-Recruiters can upload multiple resume PDFs. The app:
+The scoring includes:
 
-* Extracts text from each resume
-* Finds role-specific skills in each resume
-* Compares resume skills to job description skills
-* Calculates a match score
-* Ranks candidates by fit
-* Labels candidates as High Review, Medium Review, or Low Review
+* Technical skill match
+* Resume and job description text similarity
+* Soft skill match
 
-### Skill Heatmap
+This helps identify strong, medium, and weak candidate fits.
 
-The app creates a skill heatmap showing which candidates match each required job skill.
+### 3. Negative Skill Sentence Handling
 
-This helps recruiters quickly compare candidates across the same role requirements.
+OfferPilot removes misleading negative skill sentences such as:
 
-### Role Simulation Task
+> Limited experience with Python, Streamlit, Pandas, NLP, APIs, and Git.
 
-Based on the detected role category, OfferPilot generates a small role-specific task.
+This prevents weak resumes from falsely matching technical skills just because those skills are mentioned in a negative context.
 
-Examples:
+### 4. Skill Heatmap
 
-* Data role: analyze a small dataset and explain insights
-* ML role: choose model evaluation metrics
-* SWE role: debug a performance issue
-* Finance / Risk role: review suspicious transactions
-* HR role: improve a recruiting process
-* Product role: choose feature launch metrics
+The app generates a candidate skill heatmap showing which required skills each candidate matches or misses.
 
-### Rubric-Based Response Scoring
+This makes it easier for recruiters to compare candidates side by side.
 
-Recruiters can paste a candidate’s simulation response. The app scores the response using a structured rubric:
+### 5. Role Simulation Task Generator
 
-* Technical Correctness
-* Reasoning Clarity
-* Role Relevance
+OfferPilot generates a realistic work simulation task based on the job description and role category.
+
+The task includes:
+
+* Business scenario
+* Candidate task
+* Expected response elements
+* Evaluation focus
+
+This helps recruiters evaluate how candidates think through practical role-specific problems.
+
+### 6. LLM Rubric Scoring
+
+Recruiters can paste a candidate's simulation response. The app scores the response using a structured rubric:
+
+* Technical correctness
+* Reasoning clarity
+* Role relevance
 * Communication
-* Assumptions / Tradeoffs
+* Assumptions and tradeoffs
 
-The final simulation score is calculated as a percentage.
+The final simulation score is calculated out of 100.
 
-### Candidate Signal Card
+### 7. Candidate Signal Card
 
-OfferPilot combines resume match and simulation performance into a final candidate signal card.
+OfferPilot combines resume match score and simulation score to generate a final candidate signal card.
 
 The signal card includes:
 
-* Resume match score
-* Simulation score
-* Final confidence level
+* Final confidence
+* Recommended next step
+* Recruiter summary
 * Strengths
 * Risks
-* Recommended next step
+* Interview focus areas
+
+Final confidence is calculated using a deterministic scoring formula so that the LLM does not overrate weak candidates.
+
+### 8. Recruiter Notes and Decision Tracking
+
+Recruiters can save additional review information for each candidate:
+
+* Recruiter decision
+* Recruiter notes
+* Follow-up questions
+
+This makes the app closer to a real hiring review workflow.
 
 ## Tech Stack
 
 * Python
 * Streamlit
 * Pandas
+* scikit-learn
 * pypdf
-* Rule-based NLP / text matching
-* Rubric-based scoring logic
+* Groq API
+* Llama 3.1
+* TF-IDF text similarity
+* Rule-based skill extraction
+* LLM-powered scoring and summarization
 
 ## Project Structure
 
@@ -111,27 +137,103 @@ OfferPilot_Role_Simulation_Hiring_Assistant/
 ├── app.py
 ├── requirements.txt
 ├── README.md
-├── .gitignore
 │
-└── src/
-    ├── job_parser.py
-    ├── resume_reader.py
-    ├── match_engine.py
-    ├── simulation_generator.py
-    ├── rubric_scorer.py
-    └── signal_card.py
+├── src/
+│   ├── resume_reader.py
+│   ├── job_parser.py
+│   ├── semantic_matcher.py
+│   ├── simulation_generator.py
+│   ├── rubric_scorer.py
+│   ├── signal_card.py
+│   ├── llm_client.py
+│   ├── llm_jd_analyzer.py
+│   ├── llm_simulation_generator.py
+│   ├── llm_rubric_scorer.py
+│   └── llm_signal_card.py
+│
+└── .streamlit/
+    └── secrets.toml
 ```
 
-## How to Run
+Note: `.streamlit/secrets.toml` is used locally for API keys and should not be pushed to GitHub.
 
-Clone the repository:
+## How It Works
 
-```bash
-git clone https://github.com/Nishita2006/python-ml-journey.git
-cd python-ml-journey/Resume-projects/OfferPilot_Role_Simulation_Hiring_Assistant
-```
+### Step 1: Analyze Job Description
 
-Install dependencies:
+The recruiter pastes a job description. OfferPilot extracts role information, required skills, soft skills, and responsibilities.
+
+### Step 2: Upload Resumes
+
+The recruiter uploads resume PDFs. The app extracts text from each resume.
+
+### Step 3: Match Candidates
+
+The app compares each resume against the job description using:
+
+* Direct skill matching
+* Text similarity
+* Soft skill matching
+* Negative skill sentence filtering
+
+Candidates are ranked by match score.
+
+### Step 4: Generate Simulation Task
+
+The app creates a role-specific work simulation task using the job description.
+
+### Step 5: Score Candidate Response
+
+The recruiter pastes the candidate's simulation response. The app scores it using an LLM rubric.
+
+### Step 6: Create Signal Card
+
+The app generates a recruiter-ready candidate signal card with strengths, risks, final confidence, and recommended next steps.
+
+### Step 7: Save Recruiter Notes
+
+The recruiter can save final notes, decisions, and follow-up questions for each candidate.
+
+## Scoring Logic
+
+### Resume Match Score
+
+The final resume match score combines:
+
+* 70% technical skill match
+* 20% text similarity
+* 10% soft skill match
+
+This prevents soft skills from overpowering technical fit.
+
+### Final Confidence Score
+
+Final confidence combines resume match and simulation performance:
+
+* 60% resume match score
+* 40% simulation score
+
+Confidence levels:
+
+* High: 75 and above
+* Medium: 40 to 74
+* Low: below 40
+
+This makes final candidate recommendations more consistent and less dependent on LLM wording.
+
+## Example Results
+
+In testing, OfferPilot correctly ranked candidates as:
+
+| Candidate Type   | Resume Match | Simulation Score | Final Confidence |
+| ---------------- | -----------: | ---------------: | ---------------- |
+| Strong candidate |          84% |              76% | High             |
+| Medium candidate |          43% |              76% | Medium           |
+| Weak candidate   |           5% |              22% | Low              |
+
+## Local Setup
+
+Clone the repository and install dependencies:
 
 ```bash
 pip install -r requirements.txt
@@ -143,42 +245,78 @@ Run the Streamlit app:
 streamlit run app.py
 ```
 
-## Sample Workflow
+If running from the root repository folder:
 
-1. Paste a job description in the Job Setup tab.
-2. Click Analyze Job Description.
-3. Upload multiple resume PDFs in the Candidate Screening tab.
-4. Review the ranked candidate table.
-5. Open the Skill Heatmap tab to compare candidate skills.
-6. Go to the Simulation Review tab.
-7. Select a candidate and paste their simulation response.
-8. View rubric scores and the final Candidate Signal Card.
+```bash
+streamlit run "Resume-projects/OfferPilot_Role_Simulation_Hiring_Assistant/app.py"
+```
+
+## Environment Variables
+
+Create a local secrets file:
+
+```text
+.streamlit/secrets.toml
+```
+
+Add your Groq API key:
+
+```toml
+GROQ_API_KEY = "your_api_key_here"
+```
+
+Important: Do not push `secrets.toml` to GitHub.
+
+Recommended `.gitignore` entries:
+
+```text
+**/.streamlit/
+**/secrets.toml
+.env
+__pycache__/
+*.pyc
+```
+
+## Deployment
+
+The app is deployed using Streamlit Cloud.
+
+For deployment, add the Groq API key in:
+
+```text
+Streamlit Cloud → App Settings → Secrets
+```
+
+Use this format:
+
+```toml
+GROQ_API_KEY = "your_api_key_here"
+```
 
 ## Limitations
 
-This project uses rule-based text matching and scoring. It is designed to be explainable and easy to understand, but it does not replace human hiring judgment.
-
-Current limitations:
-
-* Resume text extraction works best with text-based PDFs, not scanned image resumes.
-* Skill extraction depends on predefined skill lists.
-* Match scores are based on keyword overlap, not deep semantic understanding.
-* Rubric scoring is rule-based and may not fully capture answer quality.
-* The app supports recruiter decision-making but should not be used as an automatic hiring decision system.
+* Resume parsing depends on PDF text quality.
+* Skill extraction is partly rule-based and may miss uncommon wording.
+* LLM-generated feedback may vary slightly across runs.
+* The app is designed as a decision-support tool, not an automated hiring decision system.
+* The current version does not include authentication or a database for long-term candidate storage.
 
 ## Future Improvements
 
-Possible next upgrades:
+Potential future improvements include:
 
-* Add semantic similarity using embeddings
-* Support scanned resumes using OCR
-* Add LLM-generated simulation tasks
-* Add LLM-assisted rubric scoring with explanations
-* Store screening sessions in a database
-* Export candidate signal cards as PDF reports
-* Add authentication and recruiter workspace history
-* Improve skill extraction with a larger skill taxonomy
+* Add embeddings for deeper semantic resume matching
+* Store candidate reviews in a database
+* Add export to CSV or PDF
+* Add authentication for recruiters
+* Improve resume parsing for complex PDF layouts
+* Add bias and fairness checks
+* Add batch comparison across multiple job descriptions
 
-## Project Goal
+## Resume Bullet
 
-The goal of OfferPilot is to create a more explainable and practical hiring support tool by combining resume screening with role-specific simulation evaluation.
+Built OfferPilot, an LLM-powered hiring assistant that analyzes job descriptions, screens resumes using hybrid skill and text similarity matching, generates role-specific simulations, scores candidate responses with an LLM rubric, and produces recruiter-ready signal cards with decision tracking.
+
+## Author
+
+Nishita Reddy Yaduguri
