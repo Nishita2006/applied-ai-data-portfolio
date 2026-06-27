@@ -1,3 +1,6 @@
 streamlit
 pandas
 pypdf
+groq
+scikit-learn
+numpy
