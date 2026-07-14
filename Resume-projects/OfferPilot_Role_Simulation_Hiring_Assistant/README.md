@@ -1,322 +1,230 @@
-# OfferPilot: LLM-Powered Role Simulation Hiring Assistant
+# OfferPilot — Evidence-Led Hiring Intelligence
 
-OfferPilot is an LLM-powered hiring assistant that helps recruiters analyze job descriptions, screen resumes, generate role-specific work simulation tasks, score candidate responses, and create recruiter-ready signal cards.
+OfferPilot is an AI-assisted hiring decision-support application that helps recruiters analyze job descriptions, compare resume evidence, validate candidates through role-specific work simulations, and document structured hiring decisions.
 
-The project is designed to support an end-to-end candidate review workflow, combining resume matching, LLM reasoning, simulation-based assessment, and recruiter decision tracking.
+> OfferPilot supports recruiter judgment. It does not autonomously select or reject candidates and should not use protected attributes.
 
 ## Live Demo
 
-https://offerpilot-hiring-assistant.streamlit.app/
+**Streamlit app:** https://offerpilot-hiring-assistant.streamlit.app/
 
+## Why OfferPilot
 
-## Project Overview
+Traditional resume screening can over-reward keyword-heavy resumes while providing limited evidence that a candidate can perform the work. OfferPilot combines multiple role-relevant signals:
 
-Traditional resume screening often relies on manual review or simple keyword matching. OfferPilot improves this process by helping recruiters understand candidate fit from multiple signals:
+- Structured job-description analysis
+- Explainable resume-to-role matching
+- Negative-skill sentence handling
+- Candidate competency comparison
+- Role-specific work simulations
+- Structured rubric scoring
+- Recruiter-ready signal cards
+- Human decision and notes tracking
+- Exportable candidate review results
 
-* Job description analysis
-* Resume skill matching
-* Text similarity scoring
-* Role-specific simulation tasks
-* LLM-based rubric scoring
-* Candidate signal cards
-* Recruiter notes and decision tracking
+## HR Demo Mode
 
-The goal is not to replace recruiters, but to give them a clearer and more structured way to compare candidates.
+The application includes a one-click demo workflow with:
 
-## Key Features
+- One sample software-engineering internship
+- Three sample candidate profiles
+- Strong, developing, and limited-fit examples
+- Completed simulation responses
+- Candidate signal cards
+- Recruiter decisions and evidence-based notes
 
-### 1. Job Description Analysis
+Use **Load complete HR demo** in the sidebar to present the complete workflow without uploading files.
 
-Recruiters can paste a job description, and the app extracts:
+## Core Workflow
 
-* Role title
-* Role category
-* Required technical skills
-* Preferred skills
-* Soft skills
-* Responsibilities
-* Seniority level
-* Ideal candidate summary
+### 1. Role Intelligence
 
-The app uses an LLM when available and falls back to rule-based logic if the API key is not configured.
+OfferPilot converts an unstructured job description into an assessment blueprint containing:
 
-### 2. Candidate Resume Screening
+- Role title and category
+- Seniority level
+- Required competencies
+- Preferred competencies
+- Human or workplace competencies
+- Responsibilities
+- Ideal-candidate summary
 
-Recruiters can upload multiple resume PDFs. The app extracts resume text and ranks candidates using a hybrid matching approach.
+### 2. Candidate Screening
 
-The scoring includes:
+Recruiters can upload multiple text-based PDF resumes or use the sample candidate set.
 
-* Technical skill match
-* Resume and job description text similarity
-* Soft skill match
+The resume-match score combines:
 
-This helps identify strong, medium, and weak candidate fits.
+- **70%** technical or role-specific competency match
+- **20%** resume-to-job text similarity
+- **10%** human competency match
 
-### 3. Negative Skill Sentence Handling
+The interface shows matched evidence, missing evidence, review priority, candidate ranking, and a configurable shortlist review threshold.
 
-OfferPilot removes misleading negative skill sentences such as:
+### 3. Evidence Comparison
 
-> Limited experience with Python, Streamlit, Pandas, NLP, APIs, and Git.
+A competency matrix compares candidates side by side and makes the detected evidence visible to the recruiter.
 
-This prevents weak resumes from falsely matching technical skills just because those skills are mentioned in a negative context.
+A missing match means that evidence was not detected in the supplied resume. It does not prove the candidate lacks that competency.
 
-### 4. Skill Heatmap
+### 4. Work Simulation
 
-The app generates a candidate skill heatmap showing which required skills each candidate matches or misses.
+OfferPilot generates a role-specific practical scenario designed to evaluate reasoning, technical judgment, communication, assumptions, and tradeoffs.
 
-This makes it easier for recruiters to compare candidates side by side.
+### 5. Candidate Signal Card
 
-### 5. Role Simulation Task Generator
+Resume evidence and simulation performance are combined into a structured signal card containing:
 
-OfferPilot generates a realistic work simulation task based on the job description and role category.
+- Final confidence
+- Combined evidence score
+- Recommended next step
+- Recruiter summary
+- Strengths
+- Risks
+- Interview focus areas
 
-The task includes:
+The combined evidence score uses:
 
-* Business scenario
-* Candidate task
-* Expected response elements
-* Evaluation focus
+- **60%** resume-match score
+- **40%** simulation score
 
-This helps recruiters evaluate how candidates think through practical role-specific problems.
+### 6. Recruiter Decision Record
 
-### 6. LLM Rubric Scoring
+Recruiters can save:
 
-Recruiters can paste a candidate's simulation response. The app scores the response using a structured rubric:
+- Move Forward, Needs More Review, Hold, or Reject
+- Evidence-based notes
+- Structured interview questions
+- Candidate review results as CSV
 
-* Technical correctness
-* Reasoning clarity
-* Role relevance
-* Communication
-* Assumptions and tradeoffs
+## Responsible-AI Design
 
-The final simulation score is calculated out of 100.
+OfferPilot is designed as a human-in-the-loop decision-support tool.
 
-### 7. Candidate Signal Card
+The intended safeguards include:
 
-OfferPilot combines resume match score and simulation score to generate a final candidate signal card.
+- No autonomous employment decisions
+- No protected-attribute scoring
+- Explainable matched and missing evidence
+- Clear distinction between absent evidence and absent ability
+- Human review before every final decision
+- Structured validation through work simulations
+- Documented recruiter reasoning
 
-The signal card includes:
+## Technology
 
-* Final confidence
-* Recommended next step
-* Recruiter summary
-* Strengths
-* Risks
-* Interview focus areas
-
-Final confidence is calculated using a deterministic scoring formula so that the LLM does not overrate weak candidates.
-
-### 8. Recruiter Notes and Decision Tracking
-
-Recruiters can save additional review information for each candidate:
-
-* Recruiter decision
-* Recruiter notes
-* Follow-up questions
-
-This makes the app closer to a real hiring review workflow.
-
-## Tech Stack
-
-* Python
-* Streamlit
-* Pandas
-* scikit-learn
-* pypdf
-* Groq API
-* Llama 3.1
-* TF-IDF text similarity
-* Rule-based skill extraction
-* LLM-powered scoring and summarization
+- Python
+- Streamlit
+- pandas
+- pypdf
+- scikit-learn
+- TF-IDF and cosine similarity
+- Groq API
+- Llama-based job analysis, simulation generation, scoring, and summaries
+- Deterministic fallback logic when the API is unavailable
 
 ## Project Structure
 
 ```text
 OfferPilot_Role_Simulation_Hiring_Assistant/
-│
 ├── app.py
-├── requirements.txt
 ├── README.md
-│
-├── src/
-│   ├── resume_reader.py
-│   ├── job_parser.py
-│   ├── semantic_matcher.py
-│   ├── simulation_generator.py
-│   ├── rubric_scorer.py
-│   ├── signal_card.py
-│   ├── llm_client.py
-│   ├── llm_jd_analyzer.py
-│   ├── llm_simulation_generator.py
-│   ├── llm_rubric_scorer.py
-│   └── llm_signal_card.py
-│
-└── .streamlit/
-    └── secrets.toml
+├── requirements.txt
+├── .gitignore
+└── src/
+    ├── job_parser.py
+    ├── llm_client.py
+    ├── llm_jd_analyzer.py
+    ├── llm_rubric_scorer.py
+    ├── llm_signal_card.py
+    ├── llm_simulation_generator.py
+    ├── resume_reader.py
+    ├── rubric_scorer.py
+    ├── semantic_matcher.py
+    ├── signal_card.py
+    └── simulation_generator.py
 ```
 
-Note: `.streamlit/secrets.toml` is used locally for API keys and should not be pushed to GitHub.
-
-## How It Works
-
-### Step 1: Analyze Job Description
-
-The recruiter pastes a job description. OfferPilot extracts role information, required skills, soft skills, and responsibilities.
-
-### Step 2: Upload Resumes
-
-The recruiter uploads resume PDFs. The app extracts text from each resume.
-
-### Step 3: Match Candidates
-
-The app compares each resume against the job description using:
-
-* Direct skill matching
-* Text similarity
-* Soft skill matching
-* Negative skill sentence filtering
-
-Candidates are ranked by match score.
-
-### Step 4: Generate Simulation Task
-
-The app creates a role-specific work simulation task using the job description.
-
-### Step 5: Score Candidate Response
-
-The recruiter pastes the candidate's simulation response. The app scores it using an LLM rubric.
-
-### Step 6: Create Signal Card
-
-The app generates a recruiter-ready candidate signal card with strengths, risks, final confidence, and recommended next steps.
-
-### Step 7: Save Recruiter Notes
-
-The recruiter can save final notes, decisions, and follow-up questions for each candidate.
-
-## Scoring Logic
-
-### Resume Match Score
-
-The final resume match score combines:
-
-* 70% technical skill match
-* 20% text similarity
-* 10% soft skill match
-
-This prevents soft skills from overpowering technical fit.
-
-### Final Confidence Score
-
-Final confidence combines resume match and simulation performance:
-
-* 60% resume match score
-* 40% simulation score
-
-Confidence levels:
-
-* High: 75 and above
-* Medium: 40 to 74
-* Low: below 40
-
-This makes final candidate recommendations more consistent and less dependent on LLM wording.
-
-## Example Results
-
-In testing, OfferPilot correctly ranked candidates as:
-
-| Candidate Type   | Resume Match | Simulation Score | Final Confidence |
-| ---------------- | -----------: | ---------------: | ---------------- |
-| Strong candidate |          84% |              76% | High             |
-| Medium candidate |          43% |              76% | Medium           |
-| Weak candidate   |           5% |              22% | Low              |
+The current `src` directory remains compatible with the redesigned application.
 
 ## Local Setup
 
-Clone the repository and install dependencies:
+From the OfferPilot directory:
+
+```bash
+python -m venv .venv
+```
+
+Activate the virtual environment.
+
+Windows PowerShell:
+
+```powershell
+.venv\Scripts\Activate.ps1
+```
+
+macOS or Linux:
+
+```bash
+source .venv/bin/activate
+```
+
+Install dependencies:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-Run the Streamlit app:
+Run the application:
 
 ```bash
 streamlit run app.py
 ```
 
-If running from the root repository folder:
+From the root portfolio repository:
 
 ```bash
 streamlit run "Resume-projects/OfferPilot_Role_Simulation_Hiring_Assistant/app.py"
 ```
 
-## Environment Variables
+## Groq Configuration
 
-Create a local secrets file:
+Create this local file:
 
 ```text
 .streamlit/secrets.toml
 ```
 
-Add your Groq API key:
+Add:
 
 ```toml
-GROQ_API_KEY = "your_api_key_here"
+GROQ_API_KEY = "your_groq_api_key"
 ```
 
-Important: Do not push `secrets.toml` to GitHub.
+Do not commit this file.
 
-Recommended `.gitignore` entries:
+For Streamlit Community Cloud, add the same key under:
 
 ```text
-**/.streamlit/
-**/secrets.toml
-.env
-__pycache__/
-*.pyc
+App settings → Secrets
 ```
 
-## Deployment
-
-The app is deployed using Streamlit Cloud.
-
-For deployment, add the Groq API key in:
-
-```text
-Streamlit Cloud → App Settings → Secrets
-```
-
-Use this format:
-
-```toml
-GROQ_API_KEY = "your_api_key_here"
-```
+The application remains usable in fallback mode when the key is unavailable.
 
 ## Limitations
 
-* Resume parsing depends on PDF text quality.
-* Skill extraction is partly rule-based and may miss uncommon wording.
-* LLM-generated feedback may vary slightly across runs.
-* The app is designed as a decision-support tool, not an automated hiring decision system.
-* The current version does not include authentication or a database for long-term candidate storage.
-
-## Future Improvements
-
-Potential future improvements include:
-
-* Add embeddings for deeper semantic resume matching
-* Store candidate reviews in a database
-* Add export to CSV or PDF
-* Add authentication for recruiters
-* Improve resume parsing for complex PDF layouts
-* Add bias and fairness checks
-* Add batch comparison across multiple job descriptions
+- PDF extraction works best with text-based resumes.
+- Scanned PDFs may require OCR.
+- Rule-based skill extraction may miss uncommon synonyms.
+- LLM output can vary between runs.
+- The current MVP does not provide authentication or persistent database storage.
+- Production hiring use would require formal fairness testing, governance, security controls, accessibility review, and legal validation.
 
 ## Resume Bullet
 
-Built OfferPilot, an LLM-powered hiring assistant that analyzes job descriptions, screens resumes using hybrid skill and text similarity matching, generates role-specific simulations, scores candidate responses with an LLM rubric, and produces recruiter-ready signal cards with decision tracking.
+Built OfferPilot, an explainable AI-assisted hiring workflow that analyzes job descriptions, ranks resumes using hybrid competency and TF-IDF matching, generates role-specific simulations, evaluates responses with structured rubrics, and produces recruiter-ready signal cards with human decision tracking.
 
 ## Author
 
-Nishita Reddy Yaduguri
+**Nishita Reddy Yaduguri**  
+Computer Science and Data Science, University of Wisconsin–Madison
