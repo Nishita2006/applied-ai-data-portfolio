@@ -1571,6 +1571,7 @@ with tab_simulation:
                     {"Rubric Area": key, "Score": value}
                     for key, value in rubric.items()
                     if key != "Simulation Score"
+                    and isinstance(value, (int, float))
                 ]
             )
             st.dataframe(
