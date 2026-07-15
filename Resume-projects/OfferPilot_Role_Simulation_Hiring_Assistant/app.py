@@ -1,5 +1,6 @@
 import io
 import json
+import re
 from datetime import datetime
 
 import pandas as pd
@@ -143,6 +144,69 @@ st.markdown(
             border-radius: 18px;
             background: rgba(13, 27, 45, 0.82);
             margin-bottom: 1rem;
+        }
+
+        .role-header-card {
+            padding: 1.35rem 1.5rem;
+            border: 1px solid var(--op-border);
+            border-radius: 18px;
+            background:
+                linear-gradient(135deg, rgba(139, 92, 246, 0.12), rgba(56, 189, 248, 0.06)),
+                rgba(13, 27, 45, 0.86);
+            margin-bottom: 1rem;
+        }
+
+        .role-title-large {
+            color: white;
+            font-size: 1.85rem;
+            font-weight: 850;
+            line-height: 1.2;
+            margin-bottom: 0.35rem;
+            overflow-wrap: anywhere;
+        }
+
+        .role-meta {
+            color: var(--op-muted);
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .skill-chip {
+            display: inline-block;
+            padding: 0.34rem 0.62rem;
+            margin: 0.18rem 0.2rem 0.18rem 0;
+            border-radius: 999px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            background: rgba(56, 189, 248, 0.10);
+            border: 1px solid rgba(56, 189, 248, 0.22);
+            color: #dbeafe;
+        }
+
+        .skill-chip-human {
+            background: rgba(45, 212, 191, 0.10);
+            border: 1px solid rgba(45, 212, 191, 0.22);
+            color: #ccfbf1;
+        }
+
+        .skill-chip-preferred {
+            background: rgba(139, 92, 246, 0.10);
+            border: 1px solid rgba(139, 92, 246, 0.22);
+            color: #ede9fe;
+        }
+
+        .success-card {
+            padding: 1.25rem;
+            border: 1px solid var(--op-border);
+            border-radius: 16px;
+            background: rgba(13, 27, 45, 0.82);
+            min-height: 100%;
+        }
+
+        .success-card h4 {
+            margin-top: 0;
+            margin-bottom: 0.65rem;
+            color: white;
         }
 
         .candidate-card {
@@ -336,32 +400,34 @@ DEMO_CANDIDATES = [
     {
         "Candidate": "Maya Patel",
         "Resume Text": """
-        Computer Science student with experience building Python and Streamlit
-        applications. Built an NLP resume analyzer using pandas, PDF parsing,
-        TF-IDF text matching, REST APIs, Git, and evaluation dashboards. Worked
-        with recruiters to convert feedback into product improvements. Presented
-        results to nontechnical stakeholders and documented assumptions,
-        limitations, and model tradeoffs. Strong collaboration, communication,
-        and problem-solving experience.
+        Computer Science student who built and deployed a Streamlit resume-screening
+        application using Python, pandas, NLP, TF-IDF text matching, PDF parsing,
+        REST APIs, and Git. Designed the candidate-ranking workflow, tested strong,
+        medium, and weak resume cases, and improved ranking precision from 72% to 89%.
+        Presented results to recruiting stakeholders and documented model limitations,
+        fairness risks, and human-review requirements. Collaborated with two developers
+        and owned the evaluation dashboard.
         """,
     },
     {
         "Candidate": "Jordan Lee",
         "Resume Text": """
-        Data Science student experienced with Python, pandas, machine learning,
-        SQL, Git, data analysis, and visualization. Built classification models
-        and a dashboard for student services. Familiar with NLP concepts and
-        API integration. Collaborated in a four-person team and presented a final
-        project. Interested in learning Streamlit, PDF parsing, and LLM systems.
+        Data Science student experienced with Python, pandas, machine learning, SQL,
+        Git, data analysis, and visualization. Built classification models and a
+        dashboard for a student-services project in a four-person team. Supported API
+        integration and presented the final project. Familiar with NLP concepts but has
+        not independently deployed a Streamlit application. Interested in learning PDF
+        parsing and LLM systems.
         """,
     },
     {
         "Candidate": "Alex Morgan",
         "Resume Text": """
-        Business student with Excel, presentation, customer service, and project
-        coordination experience. Strong communication and teamwork. Limited
-        experience with Python, Streamlit, pandas, NLP, APIs, and Git. Interested
-        in technology and recruiting operations.
+        Business student with strong communication, presentation, customer service,
+        and team coordination experience. Worked with project stakeholders and prepared
+        weekly reports in Excel. Has limited classroom exposure to Python and has not
+        built applications with Streamlit, pandas, NLP, APIs, or Git. Interested in
+        recruiting operations and learning technical tools.
         """,
     },
 ]
@@ -422,6 +488,9 @@ DEFAULT_STATE = {
     "recruiter_notes": {},
     "recruiter_decisions": {},
     "follow_up_questions": {},
+    "candidate_resume_texts": {},
+    "candidate_skill_evidence": {},
+    "skill_verification_results": {},
     "screening_completed": False,
     "demo_mode": False,
 }
@@ -500,10 +569,16 @@ def get_analysis(job_description: str) -> dict:
     try:
         analysis = analyze_job_description_with_llm(job_description)
         if analysis and analysis.get("required_skills"):
+            if "intern" in job_description.lower():
+                analysis["seniority_level"] = "Intern / Entry-level"
             return analysis
     except Exception:
         pass
-    return fallback_jd_analysis(job_description)
+
+    analysis = fallback_jd_analysis(job_description)
+    if "intern" in job_description.lower():
+        analysis["seniority_level"] = "Intern / Entry-level"
+    return analysis
 
 
 def get_simulation(job_description: str, jd_analysis: dict) -> str:
@@ -665,6 +740,174 @@ def create_signal_card(
     )
 
 
+
+def split_resume_into_sentences(resume_text: str) -> list[str]:
+    """Create readable evidence snippets from resume text."""
+    normalized = re.sub(r"\s+", " ", resume_text or "").strip()
+    if not normalized:
+        return []
+
+    parts = re.split(r"(?<=[.!?])\s+|[\n\r•]+", normalized)
+    return [part.strip(" -•\t") for part in parts if len(part.strip()) >= 18]
+
+
+SKILL_ALIASES = {
+    "python": ["python"],
+    "streamlit": ["streamlit"],
+    "pandas": ["pandas"],
+    "nlp": ["nlp", "natural language processing", "text matching", "text analysis"],
+    "apis": ["api", "apis", "rest api", "api integration"],
+    "git": ["git", "github", "version control"],
+    "data analysis": ["data analysis", "analytics", "analyzed", "analysis"],
+    "problem solving": ["problem solving", "problem-solving", "debugged", "troubleshot"],
+    "communication": ["communication", "presented", "explained", "stakeholders"],
+    "collaboration": ["collaboration", "collaborated", "team", "teamwork"],
+    "presentation": ["presentation", "presented", "demoed"],
+}
+
+
+def get_skill_aliases(skill: str) -> list[str]:
+    normalized = skill.lower().strip()
+    return list(dict.fromkeys([normalized] + SKILL_ALIASES.get(normalized, [])))
+
+
+def find_skill_evidence(skill: str, sentences: list[str]) -> list[str]:
+    aliases = get_skill_aliases(skill)
+    matches = []
+
+    for sentence in sentences:
+        lowered = sentence.lower()
+        if any(alias in lowered for alias in aliases):
+            matches.append(sentence)
+
+    return matches[:3]
+
+
+def classify_skill_evidence(
+    skill: str,
+    evidence_lines: list[str],
+) -> tuple[str, int]:
+    if not evidence_lines:
+        return "Not evidenced", 0
+
+    combined = " ".join(evidence_lines).lower()
+
+    action_signals = [
+        "built", "created", "developed", "implemented", "designed",
+        "deployed", "analyzed", "integrated", "trained", "evaluated",
+        "tested", "debugged", "improved", "collaborated", "presented",
+        "worked",
+    ]
+    project_signals = [
+        "project", "application", "dashboard", "model", "pipeline",
+        "system", "platform", "tool", "internship", "research",
+        "team", "client",
+    ]
+    outcome_signals = [
+        "%", "increased", "reduced", "improved", "accuracy",
+        "users", "records", "deployed", "production", "result",
+        "performance",
+    ]
+
+    score = 20
+    score += min(35, 10 * sum(signal in combined for signal in action_signals))
+    score += min(30, 8 * sum(signal in combined for signal in project_signals))
+    score += min(15, 5 * sum(signal in combined for signal in outcome_signals))
+    score = min(score, 100)
+
+    if score >= 70:
+        return "Strong project evidence", score
+    if score >= 45:
+        return "Some evidence — verify depth", score
+    return "Keyword mention only", score
+
+
+def build_skill_questions(
+    skill: str,
+    evidence_lines: list[str],
+    evidence_strength: str,
+) -> list[str]:
+    if not evidence_lines:
+        return [
+            (
+                f"The role requires **{skill}**, but the resume does not show where "
+                "you used it. Describe the closest project, course, or work example."
+            ),
+            (
+                f"What would you need to learn before using **{skill}** independently "
+                "in this role?"
+            ),
+        ]
+
+    evidence = evidence_lines[0]
+    questions = [
+        (
+            f'Your resume says: "{evidence}" What did you personally build, '
+            "implement, or own?"
+        ),
+        (
+            f"Why did you choose **{skill}** for that work instead of another "
+            "approach? What tradeoff did you make?"
+        ),
+        (
+            f"What was the hardest bug, failure, or limitation while using "
+            f"**{skill}**, and how did you diagnose it?"
+        ),
+        (
+            f"What measurable result or test proves your use of **{skill}** "
+            "was effective?"
+        ),
+    ]
+
+    if evidence_strength == "Keyword mention only":
+        questions.insert(
+            1,
+            (
+                f"The resume mentions **{skill}** but gives little implementation "
+                "detail. Describe the exact workflow, files, components, or "
+                "deliverable you produced."
+            ),
+        )
+
+    return questions
+
+
+def build_skill_verification(
+    candidate_name: str,
+    resume_text: str,
+    target_skills: list[str],
+) -> list[dict]:
+    sentences = split_resume_into_sentences(resume_text)
+    verification_rows = []
+
+    for skill in normalize_skill_list(target_skills):
+        evidence_lines = find_skill_evidence(skill, sentences)
+        evidence_strength, evidence_score = classify_skill_evidence(
+            skill,
+            evidence_lines,
+        )
+
+        verification_rows.append(
+            {
+                "Skill": skill,
+                "Evidence Strength": evidence_strength,
+                "Evidence Score": evidence_score,
+                "Resume Evidence": (
+                    " | ".join(evidence_lines)
+                    if evidence_lines
+                    else "No supporting resume evidence detected."
+                ),
+                "Questions": build_skill_questions(
+                    skill,
+                    evidence_lines,
+                    evidence_strength,
+                ),
+            }
+        )
+
+    return verification_rows
+
+
 def candidate_score_row(candidate_name: str, resume_text: str) -> tuple[dict, dict]:
     clean_resume_text = remove_negative_skill_sentences(resume_text)
 
@@ -730,13 +973,30 @@ def build_candidate_tables(candidate_documents: list[dict]) -> None:
     candidate_results = []
     heatmap_results = []
 
+    resume_texts = {}
+    skill_evidence = {}
+
     for candidate in candidate_documents:
+        candidate_name = candidate["Candidate"]
+        resume_text = candidate["Resume Text"]
+
         result, heatmap_row = candidate_score_row(
-            candidate["Candidate"],
-            candidate["Resume Text"],
+            candidate_name,
+            resume_text,
         )
         candidate_results.append(result)
         heatmap_results.append(heatmap_row)
+
+        target_skills = normalize_skill_list(
+            st.session_state.jd_role_skills
+            + st.session_state.jd_soft_skills
+        )
+        resume_texts[candidate_name] = resume_text
+        skill_evidence[candidate_name] = build_skill_verification(
+            candidate_name,
+            resume_text,
+            target_skills,
+        )
 
     candidate_df = pd.DataFrame(candidate_results)
     candidate_df = candidate_df.sort_values("Match Score", ascending=False).reset_index(drop=True)
@@ -744,6 +1004,8 @@ def build_candidate_tables(candidate_documents: list[dict]) -> None:
 
     st.session_state.candidate_df = candidate_df
     st.session_state.heatmap_df = pd.DataFrame(heatmap_results)
+    st.session_state.candidate_resume_texts = resume_texts
+    st.session_state.candidate_skill_evidence = skill_evidence
     st.session_state.screening_completed = True
 
 
@@ -937,7 +1199,7 @@ with st.sidebar:
 
     st.divider()
 
-    if st.button("Load complete HR demo", type="primary", use_container_width=True):
+    if st.button("Load demo: compare 3 candidates", type="primary", use_container_width=True):
         load_demo()
         st.rerun()
 
@@ -996,13 +1258,14 @@ st.markdown(
 # MAIN NAVIGATION
 # ============================================================
 
-tab_overview, tab_role, tab_screening, tab_comparison, tab_simulation = st.tabs(
+tab_overview, tab_role, tab_screening, tab_comparison, tab_verification, tab_simulation = st.tabs(
     [
         "Executive Overview",
         "1 · Role Intelligence",
         "2 · Candidate Screening",
         "3 · Evidence Comparison",
-        "4 · Simulation & Decision",
+        "4 · Skill Verification",
+        "5 · Simulation & Decision",
     ]
 )
 
@@ -1059,7 +1322,7 @@ with tab_overview:
                 "recruiter decisions."
             )
             if st.button(
-                "Launch sample hiring review",
+                "Load demo: compare 3 candidates",
                 type="primary",
                 use_container_width=True,
                 key="overview_demo_button",
@@ -1117,85 +1380,133 @@ with tab_overview:
 with tab_role:
     st.markdown("## Role intelligence")
     st.caption(
-        "Turn an unstructured job description into a transparent assessment blueprint."
+        "Turn an unstructured job description into a concise, readable assessment blueprint."
     )
 
-    action_col, sample_col = st.columns([3, 1])
+    if not st.session_state.jd_analysis:
+        input_left, input_right = st.columns([3, 1])
 
-    with sample_col:
-        if st.button("Use sample role", use_container_width=True):
-            st.session_state.job_description = DEMO_JOB_DESCRIPTION
-            st.rerun()
+        with input_right:
+            if st.button("Use sample role", use_container_width=True):
+                st.session_state.job_description = DEMO_JOB_DESCRIPTION
+                st.rerun()
 
-    job_description = st.text_area(
-        "Job description",
-        height=310,
-        value=st.session_state.job_description,
-        placeholder="Paste the full job description here...",
-    )
+        job_description = st.text_area(
+            "Job description",
+            height=300,
+            value=st.session_state.job_description,
+            placeholder="Paste the full job description here...",
+        )
 
-    if st.button(
-        "Analyze role and build assessment",
-        type="primary",
-        use_container_width=True,
-    ):
-        if not job_description.strip():
-            st.warning("Paste a job description before running the analysis.")
-        else:
-            analyze_job(job_description)
-            st.success("Role intelligence and simulation blueprint created.")
+        if st.button(
+            "Analyze role and build assessment",
+            type="primary",
+            use_container_width=True,
+        ):
+            if not job_description.strip():
+                st.warning("Paste a job description before running the analysis.")
+            else:
+                analyze_job(job_description)
+                st.success("Role intelligence and simulation blueprint created.")
+                st.rerun()
 
-    if st.session_state.jd_analysis:
+    else:
         analysis = st.session_state.jd_analysis
+        role_title = analysis.get("role_title", "Not identified")
+        category = analysis.get(
+            "role_category",
+            st.session_state.category or "Not identified",
+        )
+        seniority = analysis.get("seniority_level", "Not identified")
+        required_count = len(st.session_state.jd_role_skills)
+        human_count = len(st.session_state.jd_soft_skills)
 
-        metric_cols = st.columns(4)
-        metric_cols[0].metric(
-            "Role",
-            analysis.get("role_title", "Not identified"),
-        )
-        metric_cols[1].metric(
-            "Category",
-            analysis.get("role_category", st.session_state.category),
-        )
-        metric_cols[2].metric(
-            "Required skills",
-            len(st.session_state.jd_role_skills),
-        )
-        metric_cols[3].metric(
-            "Seniority",
-            analysis.get("seniority_level", "Not identified"),
+        st.markdown(
+            f"""
+            <div class="role-header-card">
+                <div class="eyebrow">Role summary</div>
+                <div class="role-title-large">{role_title}</div>
+                <div class="role-meta">
+                    {category} &nbsp;·&nbsp; {seniority}
+                    &nbsp;·&nbsp; {required_count} technical competencies
+                    &nbsp;·&nbsp; {human_count} human competencies
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
         )
 
-        left, right = st.columns([1.15, 1])
+        left, middle, right = st.columns(3)
 
         with left:
-            st.markdown("### Assessment blueprint")
-
-            st.markdown("**Required competencies**")
-            st.write(
-                " · ".join(st.session_state.jd_role_skills)
-                if st.session_state.jd_role_skills
-                else "No required skills identified."
+            st.markdown("### Required")
+            chips = "".join(
+                f'<span class="skill-chip">{skill}</span>'
+                for skill in st.session_state.jd_role_skills
             )
+            st.markdown(chips or "No required skills identified.", unsafe_allow_html=True)
 
-            st.markdown("**Preferred competencies**")
-            preferred = analysis.get("preferred_skills", [])
-            st.write(" · ".join(preferred) if preferred else "None identified.")
-
-            st.markdown("**Human competencies**")
-            st.write(
-                " · ".join(st.session_state.jd_soft_skills)
-                if st.session_state.jd_soft_skills
-                else "No soft skills identified."
+        with middle:
+            st.markdown("### Human")
+            chips = "".join(
+                f'<span class="skill-chip skill-chip-human">{skill}</span>'
+                for skill in st.session_state.jd_soft_skills
             )
+            st.markdown(chips or "No human skills identified.", unsafe_allow_html=True)
 
         with right:
-            st.markdown("### What success looks like")
-            st.write(analysis.get("ideal_candidate_summary", ""))
+            st.markdown("### Preferred")
+            preferred = analysis.get("preferred_skills", [])
+            chips = "".join(
+                f'<span class="skill-chip skill-chip-preferred">{skill}</span>'
+                for skill in preferred
+            )
+            st.markdown(chips or "No preferred skills identified.", unsafe_allow_html=True)
 
-            st.markdown("**Core responsibilities**")
-            for responsibility in analysis.get("responsibilities", []):
-                st.write(f"• {responsibility}")
+        st.markdown("### Success profile")
+        success_left, success_right = st.columns([1.15, 1])
+
+        with success_left:
+            st.markdown(
+                f"""
+                <div class="success-card">
+                    <h4>Ideal candidate</h4>
+                    <p class="muted">
+                        {analysis.get("ideal_candidate_summary", "")}
+                    </p>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+        with success_right:
+            responsibilities = analysis.get("responsibilities", [])
+            top_responsibilities = responsibilities[:4]
+            responsibility_html = "".join(
+                f"<li>{item}</li>" for item in top_responsibilities
+            )
+            st.markdown(
+                f"""
+                <div class="success-card">
+                    <h4>Core outcomes</h4>
+                    <ul class="muted">
+                        {responsibility_html}
+                    </ul>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+        with st.expander("View original job description"):
+            st.text(st.session_state.job_description)
+
+        if st.button("Analyze a different role"):
+            st.session_state.jd_analysis = {}
+            st.session_state.job_description = ""
+            st.session_state.candidate_df = pd.DataFrame()
+            st.session_state.heatmap_df = pd.DataFrame()
+            st.session_state.candidate_skill_evidence = {}
+            st.rerun()
 
 
 # ============================================================
@@ -1405,6 +1716,243 @@ with tab_comparison:
         )
 
 
+
+# ============================================================
+# SKILL VERIFICATION
+# ============================================================
+
+with tab_verification:
+    st.markdown("## Skill claim verification")
+    st.caption(
+        "See whether each candidate supports a skill with project evidence, "
+        "then record the interviewer's verdict."
+    )
+
+    if st.session_state.candidate_df.empty:
+        st.info("Screen candidates first to generate skill verification.")
+    else:
+        candidate_names = st.session_state.candidate_df["Candidate"].tolist()
+
+        st.markdown("### Candidate evidence summary")
+
+        summary_rows = []
+        for candidate_name in candidate_names:
+            rows = st.session_state.candidate_skill_evidence.get(
+                candidate_name,
+                [],
+            )
+            summary_rows.append(
+                {
+                    "Candidate": candidate_name,
+                    "Strong Evidence": sum(
+                        row["Evidence Strength"] == "Strong project evidence"
+                        for row in rows
+                    ),
+                    "Needs Verification": sum(
+                        row["Evidence Strength"]
+                        in {
+                            "Some evidence — verify depth",
+                            "Keyword mention only",
+                        }
+                        for row in rows
+                    ),
+                    "Not Evidenced": sum(
+                        row["Evidence Strength"] == "Not evidenced"
+                        for row in rows
+                    ),
+                    "Evidence Quality": round(
+                        sum(row["Evidence Score"] for row in rows)
+                        / max(len(rows), 1)
+                    ),
+                }
+            )
+
+        summary_df = pd.DataFrame(summary_rows).sort_values(
+            "Evidence Quality",
+            ascending=False,
+        )
+
+        st.dataframe(
+            summary_df,
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "Evidence Quality": st.column_config.ProgressColumn(
+                    "Evidence Quality",
+                    min_value=0,
+                    max_value=100,
+                    format="%d%%",
+                )
+            },
+        )
+
+        st.markdown("### Compare role competencies")
+
+        target_skills = normalize_skill_list(
+            st.session_state.jd_role_skills
+            + st.session_state.jd_soft_skills
+        )
+        matrix_rows = []
+
+        for skill in target_skills:
+            row = {"Role Competency": skill}
+
+            for candidate_name in candidate_names:
+                evidence_rows = st.session_state.candidate_skill_evidence.get(
+                    candidate_name,
+                    [],
+                )
+                skill_row = next(
+                    (
+                        item
+                        for item in evidence_rows
+                        if item["Skill"] == skill
+                    ),
+                    None,
+                )
+
+                if not skill_row:
+                    symbol = "🔴 Not evidenced"
+                elif skill_row["Evidence Strength"] == "Strong project evidence":
+                    symbol = "🟢 Strong"
+                elif skill_row["Evidence Strength"] == "Some evidence — verify depth":
+                    symbol = "🟡 Verify depth"
+                elif skill_row["Evidence Strength"] == "Keyword mention only":
+                    symbol = "🟠 Mention only"
+                else:
+                    symbol = "🔴 Not evidenced"
+
+                row[candidate_name] = symbol
+
+            matrix_rows.append(row)
+
+        st.dataframe(
+            pd.DataFrame(matrix_rows),
+            use_container_width=True,
+            hide_index=True,
+        )
+
+        st.divider()
+        st.markdown("### Verify one candidate in depth")
+
+        verification_candidate = st.selectbox(
+            "Candidate",
+            candidate_names,
+            key="verification_candidate",
+        )
+
+        evidence_rows = st.session_state.candidate_skill_evidence.get(
+            verification_candidate,
+            [],
+        )
+
+        if not evidence_rows:
+            st.warning(
+                "No verification evidence is available. Rerun Candidate Screening "
+                "or reload the demo."
+            )
+        else:
+            selected_skill = st.selectbox(
+                "Skill to test",
+                [row["Skill"] for row in evidence_rows],
+                key=f"skill_to_verify_{verification_candidate}",
+            )
+
+            selected_row = next(
+                row
+                for row in evidence_rows
+                if row["Skill"] == selected_skill
+            )
+
+            left, right = st.columns([1, 1.2])
+
+            with left:
+                st.markdown("### Resume evidence")
+                st.info(selected_row["Resume Evidence"])
+                st.metric(
+                    "Evidence quality",
+                    f'{selected_row["Evidence Score"]}%',
+                    selected_row["Evidence Strength"],
+                )
+
+            with right:
+                st.markdown("### Questions based on this resume")
+                for number, question in enumerate(
+                    selected_row["Questions"],
+                    start=1,
+                ):
+                    st.markdown(
+                        f"""
+                        <div class="section-card">
+                            <strong>Question {number}</strong>
+                            <p class="muted" style="margin-bottom:0;">
+                                {question}
+                            </p>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
+
+            st.markdown("### Editable recruiter verification record")
+
+            editable_rows = []
+            for row in evidence_rows:
+                key = f"{verification_candidate}::{row['Skill']}"
+                saved = st.session_state.skill_verification_results.get(
+                    key,
+                    {"Verdict": "Not assessed", "Notes": ""},
+                )
+                editable_rows.append(
+                    {
+                        "Skill": row["Skill"],
+                        "Resume Evidence Strength": row["Evidence Strength"],
+                        "Interviewer Verdict": saved["Verdict"],
+                        "Interview Evidence": saved["Notes"],
+                    }
+                )
+
+            edited_df = st.data_editor(
+                pd.DataFrame(editable_rows),
+                use_container_width=True,
+                hide_index=True,
+                num_rows="fixed",
+                disabled=["Skill", "Resume Evidence Strength"],
+                column_config={
+                    "Interviewer Verdict": st.column_config.SelectboxColumn(
+                        "Interviewer Verdict",
+                        options=[
+                            "Not assessed",
+                            "Proven",
+                            "Partially proven",
+                            "Not proven",
+                        ],
+                        required=True,
+                    ),
+                    "Interview Evidence": st.column_config.TextColumn(
+                        "Interview Evidence",
+                        width="large",
+                    ),
+                },
+                key=f"verification_editor_{verification_candidate}",
+            )
+
+            if st.button(
+                "Save recruiter verification record",
+                key=f"save_record_{verification_candidate}",
+            ):
+                for _, edited_row in edited_df.iterrows():
+                    key = (
+                        f"{verification_candidate}::"
+                        f"{edited_row['Skill']}"
+                    )
+                    st.session_state.skill_verification_results[key] = {
+                        "Verdict": edited_row["Interviewer Verdict"],
+                        "Notes": edited_row["Interview Evidence"],
+                    }
+
+                st.success("Recruiter verification record saved.")
+
+
 # ============================================================
 # SIMULATION & DECISION
 # ============================================================
@@ -1571,7 +2119,6 @@ with tab_simulation:
                     {"Rubric Area": key, "Score": value}
                     for key, value in rubric.items()
                     if key != "Simulation Score"
-                    and isinstance(value, (int, float))
                 ]
             )
             st.dataframe(
@@ -1693,4 +2240,4 @@ st.markdown(
     </div>
     """,
     unsafe_allow_html=True,
-)
+)   
