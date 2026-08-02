@@ -70,7 +70,18 @@ Deploy `app.py` from this folder on Streamlit Community Cloud. Set the main file
 
 ## Demo walkthrough
 
-The demo opens as fictional patient **Maya Thompson**. Review Pandas/NumPy metrics, inspect the Matplotlib EDA chart, run the ML classifier, extract NLP keywords, query SQLite, ask the RAG assistant about follow-up, and demonstrate a clinical-safety refusal.
+[Open the live CareBridge demo](https://carebridge-ai.streamlit.app/). It opens as fictional patient **Maya Thompson**.
+
+Recommended recruiter path:
+
+1. Review appointment readiness.
+2. Organize a symptom description on **Symptoms & Timeline**.
+3. Use the sample on **Document Intelligence** and inspect its predicted category, confidence, and influential features.
+4. Ask a question on **Records Assistant** and inspect the cited excerpt and retrieval score.
+5. Run a read-only query on **Data Explorer**.
+6. Approve and export the polished PDF from **Visit Brief**.
+
+The hosted demo defaults to local TF-IDF retrieval and remains functional without an API key. A configured OpenAI key enables the optional LangChain generation layer; failures fall back to local cited retrieval without exposing provider errors.
 
 ## Safety and trust boundaries
 

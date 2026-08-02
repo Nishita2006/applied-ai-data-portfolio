@@ -8,7 +8,8 @@ import streamlit as st
 
 from src.analytics import preparation_score, symptom_chart
 from src.database import execute, initialize, query
-from src.ml import classify_document
+from src.export import build_visit_pdf
+from src.ml import classify_document_details
 from src.nlp import organize_symptom
 from src.rag import answer, load_demo_chunks
 
@@ -53,12 +54,15 @@ div[data-testid=stMetric]{background:white;border:1px solid var(--line);padding:
 </style>
 """, unsafe_allow_html=True)
 
-PAGES = ["Home", "Prepare my visit", "Symptoms & health", "My records", "Questions", "Visit packet"]
+PAGES = ["Home", "Visit Readiness", "Symptoms & Timeline", "Document Intelligence", "Records Assistant", "Data Explorer", "Visit Brief"]
 with st.sidebar:
     st.markdown("## 🌿 CareBridge")
     st.caption("Arrive prepared. Leave with clarity.")
     st.markdown("---")
-    page = st.radio("Your workspace", PAGES, label_visibility="collapsed")
+    page = st.radio("Your workspace", PAGES, label_visibility="collapsed", key="nav")
+    st.markdown("---")
+    st.markdown("**Recommended demo**")
+    st.caption("1. Review appointment readiness  \n2. Organize a symptom description  \n3. Classify a document  \n4. Ask a source-cited question  \n5. Run a SQL query  \n6. Export the visit brief")
     st.markdown("---")
     st.markdown("**Maya Thompson**")
     st.caption("Synthetic demo profile")
@@ -76,9 +80,15 @@ open_tasks = tasks.loc[tasks.status != "complete"]
 st.caption("DEMO · All names and health information shown here are fictional.")
 
 if page == "Home":
-    st.markdown('<div class="welcome">Your visit workspace</div>', unsafe_allow_html=True)
-    st.markdown("# Good morning, Maya")
-    st.markdown('<p class="lede">You are making good progress. Three preparation items still need attention.</p>', unsafe_allow_html=True)
+    st.markdown('<div class="welcome">AI-assisted patient visit preparation</div>', unsafe_allow_html=True)
+    st.markdown("# CareBridge")
+    st.markdown('<p class="lede">AI-assisted patient visit preparation using machine learning, NLP, SQL, and source-cited retrieval.</p>', unsafe_allow_html=True)
+    action_a,action_b,_ = st.columns([1,1,3])
+    with action_a:
+        st.button("Explore demo", type="primary", on_click=lambda: st.session_state.update(nav="Visit Readiness"), width="stretch")
+    with action_b:
+        st.link_button("View GitHub", "https://github.com/Nishita2006/applied-ai-data-portfolio/tree/main/Resume-projects/CareBridge", width="stretch")
+    st.markdown('<div class="soft-card"><b>What this demonstrates</b><br>Python · Streamlit · Pandas · NumPy · SQLite · SQL<br>scikit-learn · TF-IDF · Logistic Regression · NLP · RAG<br><br><small>All patient records are synthetic. No real medical data is used.</small></div>', unsafe_allow_html=True)
     st.markdown(f'''<div class="hero"><div class="eyebrow">Next appointment · September 18</div><h1>{appointment.title}</h1><p>{appointment.provider} · 10:30 AM · In person</p><b>{appointment.reason}</b></div>''', unsafe_allow_html=True)
     a,b,c,d = st.columns(4)
     a.metric("Visit preparation", f"{score}%", help="Measures completed preparation tasks only")
@@ -91,9 +101,7 @@ if page == "Home":
         for row in open_tasks.itertuples():
             label = "In progress" if row.status == "in_progress" else "Not started"
             st.markdown(f'<div class="soft-card"><b>{row.title}</b><br><small>{label} · Due {row.due_date}</small></div>', unsafe_allow_html=True)
-        if st.button("Continue preparing", type="primary", width="content"):
-            st.session_state["page_hint"] = "Prepare my visit"
-            st.info("Choose “Prepare my visit” from the menu to continue.")
+        st.button("Continue preparing", type="primary", width="content", on_click=lambda: st.session_state.update(nav="Visit Readiness"))
     with right:
         st.subheader("Your visit at a glance")
         st.markdown(f"**Main reason**  \n{appointment.reason}")
@@ -101,7 +109,7 @@ if page == "Home":
         st.markdown("**Top priorities**  \n3 questions marked important")
         st.markdown('<div class="attention"><b>This is a preparation score.</b><br>It does not measure health, urgency, or medical safety.</div>', unsafe_allow_html=True)
 
-elif page == "Prepare my visit":
+elif page == "Visit Readiness":
     st.markdown('<div class="welcome">Appointment preparation</div>', unsafe_allow_html=True)
     st.markdown("# Get ready for your visit")
     st.markdown('<p class="lede">Complete what you can. You may mark an item not applicable if it does not apply to this visit.</p>', unsafe_allow_html=True)
@@ -127,7 +135,7 @@ elif page == "Prepare my visit":
         st.markdown("### Before you go")
         st.markdown("- Bring a photo ID and insurance card\n- Keep your medication list current\n- Bring the questions most important to you")
 
-elif page == "Symptoms & health":
+elif page == "Symptoms & Timeline":
     st.markdown('<div class="welcome">Your health information</div>', unsafe_allow_html=True)
     st.markdown("# Symptoms and medications")
     st.markdown('<p class="lede">Keep the facts in your own words so you can explain what has been happening.</p>', unsafe_allow_html=True)
@@ -157,30 +165,33 @@ elif page == "Symptoms & health":
         st.markdown('<div class="soft-card"><b>Penicillin</b><br>Reported reaction: rash · Moderate</div><div class="soft-card"><b>Latex</b><br>Reported reaction: skin irritation · Mild</div>', unsafe_allow_html=True)
         st.markdown('<div class="attention">Do not start, stop, or change medication based on CareBridge. Confirm medication questions with a qualified healthcare professional.</div>', unsafe_allow_html=True)
 
-elif page == "My records":
-    st.markdown('<div class="welcome">Documents</div>', unsafe_allow_html=True)
-    st.markdown("# Your appointment records")
-    st.markdown('<p class="lede">Keep referrals, reports, visit notes, and insurance information together.</p>', unsafe_allow_html=True)
+elif page == "Document Intelligence":
+    st.markdown('<div class="welcome">Document intelligence</div>', unsafe_allow_html=True)
+    st.markdown("# Organize appointment records")
+    st.markdown('<p class="lede">CareBridge suggests a folder for each record. You remain in control of the final category.</p>', unsafe_allow_html=True)
     for row in documents.itertuples():
-        c1,c2 = st.columns([4,1])
-        with c1:
+        with st.expander(f"{row.title} · {row.category}"):
             st.markdown(f'<div class="soft-card"><b>{row.title}</b><br><small>{row.category} · {row.organization}</small><br><span class="source">Source: {row.citation}</span></div>', unsafe_allow_html=True)
-        with c2:
-            st.markdown("<br>", unsafe_allow_html=True)
-            st.button("Review", key=f"review-{row.Index}")
+            st.caption("Synthetic document metadata for portfolio demonstration.")
     st.markdown("### Add a record")
+    st.button("Try sample document", on_click=lambda: st.session_state.update(document_text="Laboratory blood results. Specimen collected August 21. Values include reference ranges and a follow-up instruction."))
     uploaded = st.file_uploader("Choose a text record for this demo", type=["txt"], help="The public demo reads TXT files only and does not save uploads.")
-    pasted = st.text_area("Or paste the document text", placeholder="Paste administrative instructions or report text here...")
+    pasted = st.text_area("Or paste the document text", placeholder="Paste administrative instructions or report text here...", key="document_text")
     record_text = uploaded.getvalue().decode("utf-8", errors="ignore") if uploaded else pasted
     if st.button("Review record", type="primary") and record_text:
-        category, confidence = classify_document(record_text)
-        st.success(f"Suggested folder: {category}")
-        st.caption("Please confirm this category. CareBridge does not draw medical conclusions from the document.")
+        prediction = classify_document_details(record_text)
+        col1,col2 = st.columns(2)
+        col1.metric("Suggested category", prediction["category"])
+        col2.metric("Model confidence", f'{prediction["confidence"]:.0%}')
+        st.progress(prediction["confidence"])
+        st.markdown("**Words that influenced this prediction:** " + (" · ".join(prediction["features"]) or "No strong features found"))
+        st.caption("This TF-IDF and logistic-regression model was trained on a small synthetic dataset. Confirm the category before using it; this is not a clinical interpretation.")
 
-elif page == "Questions":
-    st.markdown('<div class="welcome">Visit questions</div>', unsafe_allow_html=True)
-    st.markdown("# Make the most of your appointment")
-    st.markdown('<p class="lede">Review your prepared questions or ask CareBridge to locate information in your records.</p>', unsafe_allow_html=True)
+elif page == "Records Assistant":
+    st.markdown('<div class="welcome">Source-cited record search</div>', unsafe_allow_html=True)
+    st.markdown("# Ask CareBridge about your records")
+    st.markdown('<p class="lede">Answers are grounded in the available documents and show the supporting evidence.</p>', unsafe_allow_html=True)
+    st.info("The hosted demo uses local retrieval by default. Source search and citations remain available without an external API.")
     left,right = st.columns([1,1], gap="large")
     with left:
         st.markdown("### Questions for your provider")
@@ -188,21 +199,52 @@ elif page == "Questions":
             st.checkbox(row.question, value=bool(row.priority), key=f"question-{row.id}", help="Checked questions are marked as priorities")
         new_question = st.text_input("Add another question", placeholder="What do you want to remember to ask?")
         if st.button("Add to my list") and new_question:
-            st.success("Question added for this demo session.")
+            execute("INSERT INTO questions (appointment_id,question,priority) VALUES (1,?,0)", (new_question,))
+            st.success("Question added to your list.")
     with right:
-        st.markdown("### Ask about your records")
-        st.caption("CareBridge answers from the records available in this demo and shows where it found the information.")
+        st.markdown("### Suggested questions")
+        suggestion_cols = st.columns(2)
+        suggestions = ["Which record mentions my follow-up date?", "What preparation instructions are available?"]
+        for index,suggestion in enumerate(suggestions):
+            suggestion_cols[index].button(suggestion, key=f"suggest-{index}", on_click=lambda value=suggestion: st.session_state.__setitem__("record-question", value), width="stretch")
         question = st.text_input("What would you like to find?", placeholder="Which record mentions my follow-up date?", key="record-question")
         if st.button("Find the answer", type="primary") and question:
             result = answer(question, load_demo_chunks(ROOT / "demo_data" / "documents"))
             st.markdown(f'<div class="soft-card">{result["answer"]}</div>', unsafe_allow_html=True)
-            for citation in result["citations"]:
-                st.markdown(f'<span class="source">Source: {citation}</span>', unsafe_allow_html=True)
+            if result["evidence"]:
+                st.markdown("#### Supporting evidence")
+                for item in result["evidence"]:
+                    st.markdown(f'<div class="soft-card"><b>{item["source"]}</b> · {item["section"]}<br><span class="source">Retrieval score: {item["score"]:.0%}</span><br><small>{item["excerpt"]}</small></div>', unsafe_allow_html=True)
+            else:
+                st.caption("No source was cited because sufficient evidence was not found.")
         st.markdown('<div class="safe"><b>What CareBridge can help with</b><br>Finding dates, instructions, prepared questions, and missing records. It cannot diagnose or recommend treatment.</div>', unsafe_allow_html=True)
+
+elif page == "Data Explorer":
+    st.markdown('<div class="welcome">Portfolio data view</div>', unsafe_allow_html=True)
+    st.markdown("# Explore the synthetic data")
+    st.markdown('<p class="lede">Run a safe, read-only SQL query to see how CareBridge structures appointment information.</p>', unsafe_allow_html=True)
+    examples = {
+        "Preparation status": "SELECT status, COUNT(*) AS tasks FROM preparation_tasks GROUP BY status ORDER BY tasks DESC",
+        "Symptoms by severity": "SELECT symptom, onset_date, severity FROM symptoms ORDER BY severity DESC",
+        "Prepared questions": "SELECT question, priority FROM questions ORDER BY priority DESC, id",
+    }
+    choice = st.selectbox("Example query", list(examples))
+    sql = st.text_area("SQL", value=examples[choice], height=120)
+    if st.button("Run query", type="primary"):
+        cleaned = sql.strip().rstrip(";")
+        if not cleaned.lower().startswith("select") or ";" in cleaned:
+            st.error("For safety, the demo accepts one read-only SELECT query at a time.")
+        else:
+            try:
+                st.dataframe(query(cleaned), hide_index=True, width="stretch")
+            except Exception:
+                st.error("That query could not be completed. Check the selected fields and try again.")
+    with st.expander("Available data tables"):
+        st.code("patients · appointments · preparation_tasks · symptoms · medications · documents · questions", language="text")
 
 else:
     st.markdown('<div class="welcome">Review and share</div>', unsafe_allow_html=True)
-    st.markdown("# Your visit packet")
+    st.markdown("# Your visit brief")
     st.markdown('<p class="lede">A concise summary you control. Review every section before downloading or sharing.</p>', unsafe_allow_html=True)
     st.markdown('<div class="attention"><b>Patient-prepared and not independently verified.</b><br>This packet does not replace clinic intake or professional medical review.</div>', unsafe_allow_html=True)
     st.markdown("### Appointment")
@@ -214,6 +256,9 @@ else:
     st.markdown("### Priority questions")
     for row in questions.loc[questions.priority == 1].itertuples():
         st.markdown(f"- {row.question}")
-    approved = st.checkbox("I reviewed this packet and confirm it reflects the information I entered")
-    packet = pd.concat([symptoms.assign(section="symptoms"), medications.assign(section="medications")], ignore_index=True).to_csv(index=False)
-    st.download_button("Download my visit packet", packet, "carebridge-visit-packet.csv", disabled=not approved, type="primary")
+    approved = st.checkbox("I reviewed this brief and confirm it reflects the information I entered")
+    pdf = build_visit_pdf(appointment, symptoms, medications, questions)
+    csv_data = pd.concat([symptoms.assign(section="symptoms"), medications.assign(section="medications")], ignore_index=True).to_csv(index=False)
+    download_a,download_b = st.columns(2)
+    download_a.download_button("Download visit brief (PDF)", pdf, "carebridge-visit-brief.pdf", mime="application/pdf", disabled=not approved, type="primary", width="stretch")
+    download_b.download_button("Download summary data (CSV)", csv_data, "carebridge-summary-data.csv", mime="text/csv", disabled=not approved, width="stretch")

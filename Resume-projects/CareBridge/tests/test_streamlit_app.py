@@ -5,11 +5,12 @@ from streamlit.testing.v1 import AppTest
 
 PAGES = [
     "Home",
-    "Prepare my visit",
-    "Symptoms & health",
-    "My records",
-    "Questions",
-    "Visit packet",
+    "Visit Readiness",
+    "Symptoms & Timeline",
+    "Document Intelligence",
+    "Records Assistant",
+    "Data Explorer",
+    "Visit Brief",
 ]
 
 
