@@ -1,8 +1,8 @@
-# CareBridge — AI Patient Visit Preparation Assistant
+# CareBridge — Applied AI Patient Visit Preparation
 
 **Arrive prepared. Leave with clarity.**
 
-CareBridge is a full-stack healthcare administration workflow that helps patients organize symptoms, medications, documents, questions, and appointment requirements. It turns patient-approved information into a concise, source-aware visit summary without diagnosing, recommending treatment, or replacing a healthcare professional.
+CareBridge is a focused Python, data, and applied-AI portfolio project that helps patients organize symptoms, documents, questions, and appointment requirements. It demonstrates an end-to-end learning path—**Python → NumPy/Pandas/Matplotlib/EDA → SQL → ML → NLP → GenAI/LangChain → RAG**—without hiding the core logic behind a complex web stack.
 
 > The public demo uses entirely synthetic information. CareBridge is not a medical device and is not production-certified to handle protected health information.
 
@@ -10,19 +10,19 @@ CareBridge is a full-stack healthcare administration workflow that helps patient
 
 Visit information is often scattered across memory, medication bottles, portals, referrals, and printed notes. CareBridge creates one calm preparation workspace with an administrative checklist, editable symptom timeline, records library, question builder, pre-visit summary, and post-visit tasks.
 
-## Implemented features
+## Skills demonstrated
 
-- Responsive patient dashboard and step-based appointment workspace
-- Clearly labelled **Appointment Preparation Score**
-- Guided symptom capture, provenance labels, and editable timeline
-- Medication and reported-allergy organization with safety warnings
-- Allowlisted document validation and source-linked record metadata
-- Controlled assistant with citations and deterministic clinical-safety refusals
-- Editable, version-labelled patient summary with review and PDF export
-- Follow-up instruction-to-task drafts requiring patient verification
-- Resource-scoped sharing state, revocation, and audit history
-- Synthetic end-to-end Maya Thompson demo
-- Unit, integration, and adversarial AI-safety tests
+- **Python:** modular data, NLP, ML, retrieval, and application code
+- **NumPy/Pandas/EDA:** preparation scoring, data cleaning, grouped metrics, and symptom analysis
+- **Matplotlib:** patient-reported symptom severity visualization
+- **SQL:** normalized SQLite schema, synthetic seed data, joins, aggregation, and an in-app read-only query explorer
+- **Machine learning:** explainable TF-IDF + logistic-regression document classification
+- **NLP:** text normalization, keyword extraction, provenance, and medical-safety intent checks
+- **GenAI/LangChain:** optional environment-configured OpenAI generation; no hard-coded model credentials
+- **RAG:** local retrieval, model-grounded context, record citations, low-information fallback, and safety refusals
+- **Git/GitHub:** clean project structure, tests, documentation, and deployment configuration
+
+The reproducible [EDA notebook](notebooks/carebridge_eda.ipynb) exposes the underlying SQL queries, Pandas frames, NumPy calculation, and Matplotlib visualization.
 
 The central product is the preparation and follow-up workflow; the assistant is one constrained component.
 
@@ -41,11 +41,11 @@ flowchart LR
   I --> J[Export or authorized sharing]
 ```
 
-The runnable demo uses a FastAPI backend, a responsive HTML/CSS/JavaScript client, deterministic demo services, and JSON seed data. The provider-independent service boundaries are ready to evolve toward PostgreSQL/pgvector, object storage, queued document extraction, and a configurable model provider. See [architecture](docs/architecture.md), [data model](docs/data_model.md), [AI safety](docs/ai_safety.md), and [privacy](docs/privacy_design.md).
+The runnable demo is intentionally simple: Streamlit for presentation, SQLite for storage, scikit-learn for ML/retrieval, and optional LangChain + OpenAI for grounded generation. See [architecture](docs/architecture.md), [AI safety](docs/ai_safety.md), and [privacy](docs/privacy_design.md).
 
 ## Run locally
 
-Prerequisites: Python 3.11+.
+Prerequisites: Python 3.10+.
 
 ```bash
 python -m venv .venv
@@ -53,10 +53,10 @@ python -m venv .venv
 # macOS/Linux: source .venv/bin/activate
 pip install -r requirements.txt
 copy .env.example .env  # Windows; use `cp` on macOS/Linux
-uvicorn apps.api.main:app --reload
+streamlit run app.py
 ```
 
-Open `http://localhost:8000`. No login or API key is needed for the synthetic demo.
+Open the URL printed by Streamlit. No API key is needed for the local retrieval demo. To enable model-backed generation, put `OPENAI_API_KEY` and optionally `OPENAI_MODEL` in `.streamlit/secrets.toml` or your environment.
 
 Run tests:
 
@@ -64,16 +64,13 @@ Run tests:
 pytest
 ```
 
-Docker:
+## Deployment
 
-```bash
-copy .env.example .env
-docker compose up --build
-```
+Deploy `app.py` from this folder on Streamlit Community Cloud. Set the main file path to `Resume-projects/CareBridge/app.py`; add `OPENAI_API_KEY` as an encrypted secret only if model-backed answers are desired.
 
 ## Demo walkthrough
 
-The demo opens as fictional patient **Maya Thompson**, preparing for a cardiology follow-up on September 18, 2026. Review the preparation score, organize a symptom, validate the sample document in `demo_data/documents`, ask the assistant about follow-up, demonstrate a clinical refusal, approve/export the summary, create follow-up tasks, and inspect sharing/audit history. The detailed script is in [docs/demo_script.md](docs/demo_script.md).
+The demo opens as fictional patient **Maya Thompson**. Review Pandas/NumPy metrics, inspect the Matplotlib EDA chart, run the ML classifier, extract NLP keywords, query SQLite, ask the RAG assistant about follow-up, and demonstrate a clinical-safety refusal.
 
 ## Safety and trust boundaries
 
@@ -85,20 +82,9 @@ The demo opens as fictional patient **Maya Thompson**, preparing for a cardiolog
 - Uploaded content treated as untrusted; it cannot override system policy
 - Conservative refusals for diagnosis, treatment, medication changes, or prognosis
 
-## API endpoints
-
-| Endpoint | Purpose |
-|---|---|
-| `GET /api/demo` | Patient-scoped synthetic workflow data and readiness score |
-| `POST /api/assistant` | Guarded, cited administrative answers |
-| `POST /api/symptoms/structure` | Preserve and organize patient wording |
-| `POST /api/documents` | Validate upload type and size in demo mode |
-| `POST /api/follow-ups/extract` | Create unverified task drafts from exact instructions |
-| `GET /api/summary.pdf` | Export a synthetic patient-prepared summary |
-
 ## Limitations
 
-CareBridge is not a medical device, diagnostic system, emergency service, or substitute for professional care. This portfolio demo is not production-certified for protected health information. It uses in-memory interactions and synthetic JSON rather than durable authentication and storage. Document extraction and AI output can contain errors and always require verification. The demo assistant is deterministic; a production model/RAG provider is intentionally not represented as already implemented.
+CareBridge is not a medical device, diagnostic system, emergency service, or substitute for professional care. The ML model uses a deliberately tiny synthetic training set and its output is demo-only. The local retriever is lexical, not a clinical knowledge system. Model output and document extraction require verification. This build is not production-certified for protected health information.
 
 ## Roadmap
 
@@ -109,4 +95,3 @@ Managed PostgreSQL and object storage; clinic and calendar integrations; multili
 - Built a full-stack healthcare administration platform for appointment preparation, symptom timelines, medication organization, document readiness, provider questions, summaries, and post-visit follow-up.
 - Implemented source-linked assistant patterns, structured outputs, patient-level access boundaries, safety refusals, human verification, sharing revocation, and auditability.
 - Added synthetic demo data plus unit, integration, and adversarial evaluations for permission, citation, upload, and medical-safety behavior.
-

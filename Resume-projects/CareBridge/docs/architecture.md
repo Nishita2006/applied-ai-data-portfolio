@@ -13,7 +13,6 @@ flowchart LR
   I --> J[PDF export or authorized sharing]
 ```
 
-The runnable portfolio demo uses FastAPI with a static responsive client and deterministic synthetic data. The service layer is provider-independent and demonstrates the key trust boundaries without sending sensitive data to a model. A production deployment would replace JSON demo storage with PostgreSQL, object storage, background extraction, and patient-filtered vector retrieval.
+The portfolio demo deliberately uses a compact stack: Streamlit UI, SQLite/SQL storage, Pandas and NumPy analytics, Matplotlib EDA, scikit-learn ML/NLP retrieval, and optional LangChain/OpenAI generation. This keeps every data and AI step inspectable by a recruiter.
 
 Every retrieved chunk must include `patient_id`, `appointment_id`, document, page, and section metadata. Authorization is applied before retrieval and again before returning citations. Generated wording never overwrites the original source.
-

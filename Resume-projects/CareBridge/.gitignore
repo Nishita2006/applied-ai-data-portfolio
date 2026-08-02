@@ -3,7 +3,5 @@ __pycache__/
 .pytest_cache/
 .venv/
 .env
-carebridge.db
-uploads/*
-!uploads/.gitkeep
-
+data/carebridge.db
+.streamlit/secrets.toml
