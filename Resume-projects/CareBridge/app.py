@@ -13,10 +13,23 @@ from src.nlp import organize_symptom
 from src.rag import answer, load_demo_chunks
 
 ROOT = Path(__file__).parent
-if "OPENAI_API_KEY" in st.secrets:
-    os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
-if "OPENAI_MODEL" in st.secrets:
-    os.environ["OPENAI_MODEL"] = st.secrets["OPENAI_MODEL"]
+
+
+def load_optional_model_secrets() -> None:
+    """Use Streamlit secrets when configured; run local RAG when they are absent."""
+    try:
+        api_key = st.secrets.get("OPENAI_API_KEY")
+        model = st.secrets.get("OPENAI_MODEL")
+    except Exception:
+        # Community Cloud and local demos may intentionally have no secrets file.
+        return
+    if api_key:
+        os.environ["OPENAI_API_KEY"] = str(api_key)
+    if model:
+        os.environ["OPENAI_MODEL"] = str(model)
+
+
+load_optional_model_secrets()
 initialize()
 
 st.set_page_config(page_title="CareBridge", page_icon="🌿", layout="wide")
@@ -54,7 +67,7 @@ if page == "Dashboard":
     left,right = st.columns([1.6,1])
     with left:
         st.subheader("Preparation checklist")
-        edited = st.data_editor(tasks[["title","status","due_date"]], hide_index=True, use_container_width=True, disabled=["title","due_date"], column_config={"status": st.column_config.SelectboxColumn(options=["not_started","in_progress","complete","not_applicable"])})
+        edited = st.data_editor(tasks[["title","status","due_date"]], hide_index=True, width="stretch", disabled=["title","due_date"], column_config={"status": st.column_config.SelectboxColumn(options=["not_started","in_progress","complete","not_applicable"])})
         if st.button("Save checklist", type="primary"):
             for idx,row in edited.iterrows(): execute("UPDATE preparation_tasks SET status=? WHERE id=?", (row.status, int(tasks.iloc[idx].id)))
             st.success("Checklist saved to SQLite.")
@@ -66,8 +79,8 @@ if page == "Dashboard":
 elif page == "Symptoms & EDA":
     st.markdown("## Symptoms, NLP & exploratory analysis")
     st.caption("Pandas cleans and sorts the data; NumPy calculates metrics; Matplotlib produces the chart; lightweight NLP organizes free text.")
-    st.pyplot(symptom_chart(symptoms), use_container_width=True)
-    st.dataframe(symptoms[["symptom","onset_date","severity","pattern","source"]], hide_index=True, use_container_width=True)
+    st.pyplot(symptom_chart(symptoms), width="stretch")
+    st.dataframe(symptoms[["symptom","onset_date","severity","pattern","source"]], hide_index=True, width="stretch")
     st.subheader("Organize a patient-written symptom")
     text = st.text_area("Describe what you noticed in your own words", placeholder="For the last two weeks, I noticed...")
     if st.button("Run NLP organization", type="primary") and text:
@@ -81,7 +94,7 @@ elif page == "Documents & ML":
     st.markdown("## Document organization & machine learning")
     st.caption("An explainable TF-IDF + logistic-regression pipeline suggests a document category. It does not interpret clinical meaning.")
     docs = query("SELECT title,category,organization,citation FROM documents")
-    st.dataframe(docs, hide_index=True, use_container_width=True)
+    st.dataframe(docs, hide_index=True, width="stretch")
     sample = st.text_area("Paste document text to classify", "Laboratory results collected August 21 with reference ranges and follow-up instructions.")
     if st.button("Classify document") and sample:
         label, confidence = classify_document(sample)
@@ -109,7 +122,7 @@ elif page == "SQL Explorer":
     if st.button("Run query"):
         if not sql.strip().lower().startswith("select") or ";" in sql.strip()[:-1]: st.error("Only one read-only SELECT statement is allowed.")
         else:
-            try: st.dataframe(query(sql), hide_index=True, use_container_width=True)
+            try: st.dataframe(query(sql), hide_index=True, width="stretch")
             except Exception as exc: st.error(f"SQL error: {exc}")
     st.code("SQLite tables: patients, appointments, preparation_tasks, symptoms, medications, documents, questions", language="text")
 
@@ -123,9 +136,9 @@ else:
     st.subheader("Main concern")
     st.write(appointment.reason)
     st.subheader("Symptoms")
-    st.dataframe(symptoms[["symptom","onset_date","severity","pattern"]], hide_index=True, use_container_width=True)
+    st.dataframe(symptoms[["symptom","onset_date","severity","pattern"]], hide_index=True, width="stretch")
     st.subheader("Current medications — patient entered")
-    st.dataframe(meds, hide_index=True, use_container_width=True)
+    st.dataframe(meds, hide_index=True, width="stretch")
     st.subheader("Questions for the provider")
     for row in questions.itertuples(): st.checkbox(row.question, value=bool(row.priority), key=f"q{row.Index}")
     approved = st.checkbox("I reviewed this patient-prepared summary for accuracy")
