@@ -37,6 +37,7 @@ st.markdown("""
 :root{--navy:#14384a;--teal:#277b73;--mint:#e7f2ef;--cream:#f8f6f1;--ink:#18313b;--muted:#687b82;--line:#dbe4e1;--amber:#c3832f}
 .stApp{background:var(--cream);color:var(--ink)}.block-container{padding:2rem 2.5rem 4rem;max-width:1180px}
 [data-testid=stSidebar]{background:var(--navy)}[data-testid=stSidebar] *{color:#eef7f4}
+[data-testid=stSidebar] .safe,[data-testid=stSidebar] .safe *{color:#16384a!important}
 [data-testid=stSidebar] [role=radiogroup] label{padding:.42rem .55rem;border-radius:8px;margin:.08rem 0}
 [data-testid=stSidebar] [role=radiogroup] label:hover{background:rgba(255,255,255,.08)}
 h1,h2,h3{color:#16384a;letter-spacing:-.02em}.hero{background:linear-gradient(135deg,#173a4c,#24655f);padding:1.7rem 1.9rem;border-radius:18px;color:white;margin:.5rem 0 1.2rem;box-shadow:0 14px 35px rgba(20,56,74,.13)}
