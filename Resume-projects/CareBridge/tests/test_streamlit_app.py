@@ -4,12 +4,12 @@ from streamlit.testing.v1 import AppTest
 
 
 PAGES = [
-    "Dashboard",
-    "Symptoms & EDA",
-    "Documents & ML",
-    "RAG Assistant",
-    "SQL Explorer",
-    "Visit Summary",
+    "Home",
+    "Prepare my visit",
+    "Symptoms & health",
+    "My records",
+    "Questions",
+    "Visit packet",
 ]
 
 
