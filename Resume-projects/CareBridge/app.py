@@ -67,6 +67,7 @@ with st.sidebar:
     st.markdown("**Maya Thompson**")
     st.caption("Synthetic demo profile")
     st.markdown('<div class="safe"><b>Preparation support only</b><br>CareBridge does not diagnose or recommend treatment.</div>', unsafe_allow_html=True)
+    st.caption("Portfolio demo · August 2026")
 
 tasks = query("SELECT * FROM preparation_tasks WHERE appointment_id = 1")
 symptoms = query("SELECT * FROM symptoms WHERE appointment_id = 1")
