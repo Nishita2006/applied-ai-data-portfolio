@@ -5,7 +5,6 @@
 **Arrive prepared. Leave with clarity.**
 
 🌐 **Live Demo:** (https://carebridge-ai.streamlit.app/)
-💻 **Source Code:** https://github.com/Nishita2006/applied-ai-data-portfolio/tree/main/Resume-projects/CareBridge
 
 CareBridge is an applied AI healthcare administration project that helps patients prepare for medical appointments by organizing symptoms, medications, documents, provider questions, and follow-up information in one place.
 
