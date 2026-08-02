@@ -39,11 +39,12 @@ def retrieve(question: str, chunks: list[Chunk], top_k: int = 3) -> list[tuple[C
 def answer(question: str, chunks: list[Chunk]) -> dict:
     allowed, refusal = safety_check(question)
     if not allowed:
-        return {"answer": refusal, "citations": [], "mode": "safety refusal"}
+        return {"answer": refusal, "citations": [], "evidence": [], "mode": "safety refusal"}
     matches = retrieve(question, chunks)
     if not matches:
-        return {"answer": "I could not find that information in the available records.", "citations": [], "mode": "local retrieval"}
+        return {"answer": "I could not find enough evidence in the available records.", "citations": [], "evidence": [], "mode": "local retrieval"}
     citations = [f"{item.source} · {item.section}" for item, _ in matches]
+    evidence = [{"source": item.source, "section": item.section, "excerpt": item.text, "score": score} for item, score in matches]
     context = "\n".join(f"[{i+1}] {item.text}" for i, (item, _) in enumerate(matches))
     if os.getenv("OPENAI_API_KEY"):
         try:
@@ -53,8 +54,8 @@ def answer(question: str, chunks: list[Chunk]) -> dict:
 Answer only from the context. Do not diagnose, recommend treatment, or advise medication changes.
 If unclear, say so. Cite statements using [1], [2], etc.\n\nContext:\n{context}\n\nQuestion: {question}"""
             response = model.invoke(prompt)
-            return {"answer": str(response.content), "citations": citations, "mode": "LangChain + OpenAI"}
+            return {"answer": str(response.content), "citations": citations, "evidence": evidence, "mode": "LangChain + OpenAI"}
         except Exception:
             pass
-    return {"answer": matches[0][0].text, "citations": citations[:1], "mode": "local TF-IDF retrieval"}
+    return {"answer": matches[0][0].text, "citations": citations[:1], "evidence": evidence[:1], "mode": "local TF-IDF retrieval"}
 

@@ -32,3 +32,19 @@ def classify_document(text: str) -> tuple[str, float]:
     index = probabilities.argmax()
     return str(model.classes_[index]), float(probabilities[index])
 
+
+def classify_document_details(text: str) -> dict:
+    """Return an explainable prediction for the recruiter-facing demo."""
+    model = build_classifier()
+    probabilities = model.predict_proba([text])[0]
+    class_index = int(probabilities.argmax())
+    label = str(model.classes_[class_index])
+    vectorizer = model.named_steps["tfidf"]
+    classifier = model.named_steps["model"]
+    vector = vectorizer.transform([text])
+    feature_names = vectorizer.get_feature_names_out()
+    present = vector.nonzero()[1]
+    weights = classifier.coef_[class_index]
+    ranked = sorted(present, key=lambda i: vector[0, i] * weights[i], reverse=True)
+    features = [str(feature_names[i]) for i in ranked[:5] if weights[i] > 0]
+    return {"category": label, "confidence": float(probabilities[class_index]), "features": features}
