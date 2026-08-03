@@ -166,9 +166,16 @@ pip install -r requirements.txt
 streamlit run app.py
 ```
 
+The standard installation includes the complete local record-search workflow. To enable the optional model-backed response layer, install:
+
+```bash
+pip install -r requirements-ai.txt
+```
+
 Run the tests:
 
 ```bash
+pip install -r requirements-dev.txt
 pytest
 ```
 

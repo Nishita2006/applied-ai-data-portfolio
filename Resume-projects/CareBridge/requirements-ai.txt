@@ -1,0 +1,4 @@
+# Optional model-backed response layer. The application works without these.
+langchain>=0.3,<1
+langchain-openai>=0.3,<1
+
