@@ -86,9 +86,9 @@ if page == "Home":
     st.markdown('<p class="lede">AI-assisted patient visit preparation using machine learning, NLP, SQL, and source-cited retrieval.</p>', unsafe_allow_html=True)
     action_a,action_b,_ = st.columns([1,1,3])
     with action_a:
-        st.button("Explore demo", type="primary", on_click=lambda: st.session_state.update(nav="Visit Readiness"), width="stretch")
+        st.button("Explore demo", type="primary", on_click=lambda: st.session_state.update(nav="Visit Readiness"), use_container_width=True)
     with action_b:
-        st.link_button("View GitHub", "https://github.com/Nishita2006/applied-ai-data-portfolio/tree/main/Resume-projects/CareBridge", width="stretch")
+        st.link_button("View GitHub", "https://github.com/Nishita2006/applied-ai-data-portfolio/tree/main/Resume-projects/CareBridge", use_container_width=True)
     st.markdown('<div class="soft-card"><b>What this demonstrates</b><br>Python · Streamlit · Pandas · NumPy · SQLite · SQL<br>scikit-learn · TF-IDF · Logistic Regression · NLP · RAG<br><br><small>All patient records are synthetic. No real medical data is used.</small></div>', unsafe_allow_html=True)
     st.markdown(f'''<div class="hero"><div class="eyebrow">Next appointment · September 18</div><h1>{appointment.title}</h1><p>{appointment.provider} · 10:30 AM · In person</p><b>{appointment.reason}</b></div>''', unsafe_allow_html=True)
     a,b,c,d = st.columns(4)
@@ -102,7 +102,7 @@ if page == "Home":
         for row in open_tasks.itertuples():
             label = "In progress" if row.status == "in_progress" else "Not started"
             st.markdown(f'<div class="soft-card"><b>{row.title}</b><br><small>{label} · Due {row.due_date}</small></div>', unsafe_allow_html=True)
-        st.button("Continue preparing", type="primary", width="content", on_click=lambda: st.session_state.update(nav="Visit Readiness"))
+        st.button("Continue preparing", type="primary", on_click=lambda: st.session_state.update(nav="Visit Readiness"))
     with right:
         st.subheader("Your visit at a glance")
         st.markdown(f"**Main reason**  \n{appointment.reason}")
@@ -118,7 +118,7 @@ elif page == "Visit Readiness":
     with progress:
         st.progress(score / 100, text=f"{score}% prepared")
         edited = st.data_editor(
-            tasks[["title", "status", "due_date"]], hide_index=True, width="stretch",
+            tasks[["title", "status", "due_date"]], hide_index=True, use_container_width=True,
             disabled=["title", "due_date"],
             column_config={
                 "title": st.column_config.TextColumn("Preparation item"),
@@ -145,7 +145,7 @@ elif page == "Symptoms & Timeline":
         chart_col,list_col = st.columns([1,1], gap="large")
         with chart_col:
             st.markdown("### What you have tracked")
-            st.pyplot(symptom_chart(symptoms), width="stretch")
+            st.pyplot(symptom_chart(symptoms), use_container_width=True)
             st.caption("Severity is patient-reported and does not represent a clinical assessment.")
         with list_col:
             st.markdown("### Current entries")
@@ -161,7 +161,7 @@ elif page == "Symptoms & Timeline":
             st.caption("Review and edit this wording before including it in your visit packet.")
     with medicine_tab:
         st.markdown("### Current medications")
-        st.dataframe(medications, hide_index=True, width="stretch", column_config={"name":"Medication","strength":"Strength","frequency":"How often","status":"Status"})
+        st.dataframe(medications, hide_index=True, use_container_width=True, column_config={"name":"Medication","strength":"Strength","frequency":"How often","status":"Status"})
         st.markdown("### Reported allergies")
         st.markdown('<div class="soft-card"><b>Penicillin</b><br>Reported reaction: rash · Moderate</div><div class="soft-card"><b>Latex</b><br>Reported reaction: skin irritation · Mild</div>', unsafe_allow_html=True)
         st.markdown('<div class="attention">Do not start, stop, or change medication based on CareBridge. Confirm medication questions with a qualified healthcare professional.</div>', unsafe_allow_html=True)
@@ -207,7 +207,7 @@ elif page == "Records Assistant":
         suggestion_cols = st.columns(2)
         suggestions = ["Which record mentions my follow-up date?", "What preparation instructions are available?"]
         for index,suggestion in enumerate(suggestions):
-            suggestion_cols[index].button(suggestion, key=f"suggest-{index}", on_click=lambda value=suggestion: st.session_state.__setitem__("record-question", value), width="stretch")
+            suggestion_cols[index].button(suggestion, key=f"suggest-{index}", on_click=lambda value=suggestion: st.session_state.__setitem__("record-question", value), use_container_width=True)
         question = st.text_input("What would you like to find?", placeholder="Which record mentions my follow-up date?", key="record-question")
         if st.button("Find the answer", type="primary") and question:
             result = answer(question, load_demo_chunks(ROOT / "demo_data" / "documents"))
@@ -237,7 +237,7 @@ elif page == "Data Explorer":
             st.error("For safety, the demo accepts one read-only SELECT query at a time.")
         else:
             try:
-                st.dataframe(query(cleaned), hide_index=True, width="stretch")
+                st.dataframe(query(cleaned), hide_index=True, use_container_width=True)
             except Exception:
                 st.error("That query could not be completed. Check the selected fields and try again.")
     with st.expander("Available data tables"):
@@ -251,9 +251,9 @@ else:
     st.markdown("### Appointment")
     st.markdown(f'<div class="soft-card"><b>{appointment.title}</b> with {appointment.provider}<br>September 18, 2026 at 10:30 AM · In person<br><br><b>Main reason:</b> {appointment.reason}</div>', unsafe_allow_html=True)
     st.markdown("### Symptoms")
-    st.dataframe(symptoms[["symptom","onset_date","severity","pattern"]], hide_index=True, width="stretch", column_config={"symptom":"Symptom","onset_date":"Started","severity":"Severity (0–10)","pattern":"Pattern"})
+    st.dataframe(symptoms[["symptom","onset_date","severity","pattern"]], hide_index=True, use_container_width=True, column_config={"symptom":"Symptom","onset_date":"Started","severity":"Severity (0–10)","pattern":"Pattern"})
     st.markdown("### Current medications")
-    st.dataframe(medications[["name","strength","frequency"]], hide_index=True, width="stretch", column_config={"name":"Medication","strength":"Strength","frequency":"How often"})
+    st.dataframe(medications[["name","strength","frequency"]], hide_index=True, use_container_width=True, column_config={"name":"Medication","strength":"Strength","frequency":"How often"})
     st.markdown("### Priority questions")
     for row in questions.loc[questions.priority == 1].itertuples():
         st.markdown(f"- {row.question}")
@@ -261,5 +261,5 @@ else:
     pdf = build_visit_pdf(appointment, symptoms, medications, questions)
     csv_data = pd.concat([symptoms.assign(section="symptoms"), medications.assign(section="medications")], ignore_index=True).to_csv(index=False)
     download_a,download_b = st.columns(2)
-    download_a.download_button("Download visit brief (PDF)", pdf, "carebridge-visit-brief.pdf", mime="application/pdf", disabled=not approved, type="primary", width="stretch")
-    download_b.download_button("Download summary data (CSV)", csv_data, "carebridge-summary-data.csv", mime="text/csv", disabled=not approved, width="stretch")
+    download_a.download_button("Download visit brief (PDF)", pdf, "carebridge-visit-brief.pdf", mime="application/pdf", disabled=not approved, type="primary", use_container_width=True)
+    download_b.download_button("Download summary data (CSV)", csv_data, "carebridge-summary-data.csv", mime="text/csv", disabled=not approved, use_container_width=True)
