@@ -23,7 +23,7 @@ def build_visit_pdf(appointment: pd.Series, symptoms: pd.DataFrame, medications:
 
         line("CareBridge", size=20, weight="bold", gap=.04)
         line("Patient-prepared visit brief", size=13, weight="bold", gap=.045)
-        line("SYNTHETIC DEMO DATA · NOT INDEPENDENTLY VERIFIED", size=8, weight="bold", gap=.05)
+        line("FICTIONAL SAMPLE DATA · NOT INDEPENDENTLY VERIFIED", size=8, weight="bold", gap=.05)
         line("Appointment", size=12, weight="bold")
         line(f"{appointment.title} with {appointment.provider}")
         line("September 18, 2026 at 10:30 AM · In person")

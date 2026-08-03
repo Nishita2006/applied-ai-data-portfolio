@@ -18,7 +18,7 @@ class Chunk:
     section: str
 
 
-def load_demo_chunks(folder: Path) -> list[Chunk]:
+def load_record_chunks(folder: Path) -> list[Chunk]:
     chunks: list[Chunk] = []
     for path in folder.glob("*.txt"):
         paragraphs = [p.strip() for p in re.split(r"\n+", path.read_text(encoding="utf-8")) if len(p.strip()) > 25]
@@ -58,4 +58,3 @@ If unclear, say so. Cite statements using [1], [2], etc.\n\nContext:\n{context}\
         except Exception:
             pass
     return {"answer": matches[0][0].text, "citations": citations[:1], "evidence": evidence[:1], "mode": "local TF-IDF retrieval"}
-

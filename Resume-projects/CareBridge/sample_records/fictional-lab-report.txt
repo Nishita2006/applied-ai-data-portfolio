@@ -1,8 +1,7 @@
-SYNTHETIC DEMO DOCUMENT — NOT A REAL MEDICAL RECORD
-Northstar Demo Labs | Collected August 21, 2026
+FICTIONAL SAMPLE RECORD — NOT A REAL MEDICAL RECORD
+Northstar Sample Labs | Collected August 21, 2026
 Patient: Maya Thompson (fictional)
 Document type: Basic blood panel
 Administrative note: Results forwarded to Lakeside Primary Care.
 Follow-up: Review these results at the cardiology appointment scheduled for September 18, 2026.
-This document contains fictional values and is intended only to demonstrate document organization and citation.
-
+This record contains fictional information and is included only for document organization and source citation.

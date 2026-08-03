@@ -34,7 +34,7 @@ def classify_document(text: str) -> tuple[str, float]:
 
 
 def classify_document_details(text: str) -> dict:
-    """Return an explainable prediction for the recruiter-facing demo."""
+    """Return an explainable document-category prediction."""
     model = build_classifier()
     probabilities = model.predict_proba([text])[0]
     class_index = int(probabilities.argmax())
