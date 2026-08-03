@@ -19,6 +19,8 @@ def test_every_page_renders_without_secrets_or_runtime_errors():
     app = AppTest.from_file(str(app_path), default_timeout=30).run()
     assert not app.exception
     assert len(app.radio) == 1
+    assert any("Prepare with confidence" in item.value for item in app.markdown)
+    assert not any("What this demonstrates" in item.value for item in app.markdown)
 
     for page in PAGES:
         app.radio[0].set_value(page).run()

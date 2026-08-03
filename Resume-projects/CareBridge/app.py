@@ -89,7 +89,12 @@ if page == "Home":
         st.button("Explore demo", type="primary", on_click=lambda: st.session_state.update(nav="Visit Readiness"), use_container_width=True)
     with action_b:
         st.link_button("View GitHub", "https://github.com/Nishita2006/applied-ai-data-portfolio/tree/main/Resume-projects/CareBridge", use_container_width=True)
-    st.markdown('<div class="soft-card"><b>What this demonstrates</b><br>Python · Streamlit · Pandas · NumPy · SQLite · SQL<br>scikit-learn · TF-IDF · Logistic Regression · NLP · RAG<br><br><small>All patient records are synthetic. No real medical data is used.</small></div>', unsafe_allow_html=True)
+    st.markdown("### Prepare with confidence")
+    help_a,help_b,help_c = st.columns(3)
+    help_a.markdown('<div class="soft-card"><b>1 · Gather</b><br><small>Keep symptoms, medications, and records together.</small></div>', unsafe_allow_html=True)
+    help_b.markdown('<div class="soft-card"><b>2 · Prepare</b><br><small>Review missing items and prioritize your questions.</small></div>', unsafe_allow_html=True)
+    help_c.markdown('<div class="soft-card"><b>3 · Bring</b><br><small>Download a concise visit brief for your appointment.</small></div>', unsafe_allow_html=True)
+    st.caption("Public demo: all patient records are synthetic. No real medical data is used.")
     st.markdown(f'''<div class="hero"><div class="eyebrow">Next appointment · September 18</div><h1>{appointment.title}</h1><p>{appointment.provider} · 10:30 AM · In person</p><b>{appointment.reason}</b></div>''', unsafe_allow_html=True)
     a,b,c,d = st.columns(4)
     a.metric("Visit preparation", f"{score}%", help="Measures completed preparation tasks only")
