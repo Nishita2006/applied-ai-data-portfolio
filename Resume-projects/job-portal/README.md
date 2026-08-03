@@ -1,79 +1,14 @@
 # Job Portal — Full-Stack Recruiting Platform
 
-Launchboard is a production-style recruiting application with separate candidate and recruiter experiences. Candidates discover jobs, maintain a profile, upload a resume, apply, and track progress. Recruiters manage companies and job posts, review applicants, move candidates through hiring stages, and monitor recruiting activity.
+Launchboard is a full-stack recruiting application with separate candidate and recruiter workspaces. Candidates can discover jobs, maintain a profile, upload a resume, apply, and track progress. Recruiters can manage companies and job posts, review applicants, update hiring stages, and monitor recruiting activity.
 
-![Java](https://img.shields.io/badge/Java-21-ED8B00) ![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.5-6DB33F) ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-ready-4169E1) ![Tests](https://img.shields.io/badge/tests-4_passing-275c4d)
+The application uses a layered Spring Boot architecture, a responsive vanilla JavaScript frontend, PostgreSQL persistence, BCrypt password hashing, and signed JWT authentication.
 
-## Product highlights
+## Live Demo
 
-- Responsive HTML, CSS, and JavaScript interface served by Spring Boot
-- Candidate and recruiter registration, login, and role-specific workspaces
-- BCrypt password hashing and signed JWT bearer authentication
-- Job search across title, company, skills, and location with pagination and sorting
-- Candidate profiles, PDF/DOC/DOCX resume upload, applications, and status tracking
-- Company profiles, job publishing and closure, applicant pipelines, and analytics
-- Layered controllers, services, repositories, entities, and DTOs
-- Consistent validation, HTTP status codes, and centralized exception responses
-- OpenAPI/Swagger documentation and a ready-to-import Postman collection
-- H2 development database with PostgreSQL configuration for deployment
+**Web application:** https://launchboard-job-portal.onrender.com
 
-## Screens
-
-The public landing page is designed around job discovery. Authentication unlocks one of two dashboards:
-
-1. **Candidate workspace** — profile, resume, applications, and status history
-2. **Recruiter workspace** — analytics, job management, applicants, and hiring stages
-
-![Launchboard job search](docs/screenshots/job-search.png)
-
-## Architecture
-
-```mermaid
-flowchart LR
-    UI[HTML · CSS · JavaScript] -->|JSON + JWT| C[REST Controllers]
-    C --> S[Service Layer]
-    S --> R[Spring Data Repositories]
-    R --> DB[(PostgreSQL / H2)]
-    C --> X[Validation + Exception Handler]
-    JWT[Spring Security · JWT · BCrypt] --> C
-    DOC[OpenAPI / Swagger] --> C
-```
-
-```text
-src/main/java/com/nishita/jobportal/
-├── config/       Security, OpenAPI, and sample data
-├── controller/   Candidate, recruiter, job, and auth REST APIs
-├── dto/          Validated API request and response contracts
-├── entity/       Relational JPA domain model
-├── exception/    Consistent error handling
-├── repository/   Spring Data queries and pagination
-└── service/      Business rules and authorization boundaries
-```
-
-## Data model
-
-```mermaid
-erDiagram
-    USER ||--o| CANDIDATE_PROFILE : owns
-    USER ||--o{ COMPANY : recruits_for
-    COMPANY ||--o{ JOB_POSTING : publishes
-    USER ||--o{ JOB_APPLICATION : submits
-    JOB_POSTING ||--o{ JOB_APPLICATION : receives
-```
-
-The database enforces unique emails and one application per candidate per job. Recruiter service methods also verify ownership before editing a company job or changing an application stage.
-
-## Run locally
-
-Requirements: Java 21 and Maven 3.9+, or Docker Desktop.
-
-```bash
-git clone https://github.com/Nishita2006/applied-ai-data-portfolio.git
-cd applied-ai-data-portfolio/Resume-projects/job-portal
-./mvnw spring-boot:run
-```
-
-On Windows, use `mvnw.cmd spring-boot:run`. Open http://localhost:8080.
+The free Render service can take a short time to wake after inactivity.
 
 Sample accounts:
 
@@ -82,74 +17,192 @@ Sample accounts:
 | Candidate | `candidate@example.com` | `Password123!` |
 | Recruiter | `recruiter@example.com` | `Password123!` |
 
-The default configuration uses an in-memory H2 database. For PostgreSQL:
+## Why Launchboard
+
+Job searches and recruiting pipelines often become scattered across job boards, email, spreadsheets, resumes, and disconnected status updates. Launchboard brings the core workflow into one application:
+
+- Candidate and recruiter accounts
+- Searchable job listings
+- Candidate profile and resume management
+- Applications and status tracking
+- Company and job-post management
+- Applicant review and stage updates
+- Recruiting analytics
+
+## Core Workflow
+
+### 1. Authentication and Access
+
+Users register as a candidate or recruiter and sign in with email and password. Passwords are hashed with BCrypt, and the API returns an expiring signed JWT. Spring Security protects candidate and recruiter endpoints by role.
+
+### 2. Job Discovery
+
+Candidates search open jobs by title, company, skill, and location. The API supports pagination and sorting. Job details include employment type, skills, salary range, description, company, and posting status.
+
+### 3. Candidate Workspace
+
+Candidates can:
+
+- Build and update a profile
+- Record a headline, location, skills, and professional summary
+- Upload PDF, DOC, or DOCX resumes up to 5 MB
+- Apply to open positions
+- Track application stages
+
+The database prevents the same candidate from applying to the same job more than once.
+
+### 4. Recruiter Workspace
+
+Recruiters can:
+
+- Create and manage company profiles through the API
+- Publish, update, and close job postings
+- Review applicants across company jobs
+- Search by candidate name, email, or job title
+- Filter applications by hiring stage
+- Move candidates through Applied, Reviewing, Interview, Offer, or Rejected stages
+
+Ownership checks prevent recruiters from modifying another recruiter's jobs or applications.
+
+### 5. Recruiting Analytics
+
+The recruiter dashboard summarizes total applications and stage counts, including applications under review, interviews, and offers.
+
+## Security Design
+
+Launchboard includes:
+
+- BCrypt password hashing
+- Signed HS256 JWT access tokens
+- Eight-hour token expiration by default
+- Candidate and recruiter role authorization
+- DTO validation and centralized error responses
+- Resume type and size restrictions
+- Environment-based database credentials and signing secrets
+- Recruiter ownership checks in the service layer
+
+Production use would additionally require email verification, password recovery, refresh-token rotation, rate limiting, malware scanning, private object storage, audit logs, and formal security review.
+
+## Technology
+
+- Java 21
+- Spring Boot 3.5
+- Spring Web and REST APIs
+- Spring Data JPA and Hibernate
+- Spring Security and JWT
+- PostgreSQL and H2
+- HTML, CSS, and JavaScript
+- OpenAPI and Swagger UI
+- Maven, JUnit, Mockito, and MockMvc
+- Docker and Render
+
+## Project Structure
+
+```text
+job-portal/
+├── src/
+│   ├── main/
+│   │   ├── java/com/nishita/jobportal/
+│   │   │   ├── config/
+│   │   │   ├── controller/
+│   │   │   ├── dto/
+│   │   │   ├── entity/
+│   │   │   ├── exception/
+│   │   │   ├── repository/
+│   │   │   └── service/
+│   │   └── resources/
+│   │       ├── static/
+│   │       └── application.yml
+│   └── test/
+├── docs/
+├── postman/
+├── Dockerfile
+├── compose.yml
+├── pom.xml
+└── README.md
+```
+
+Detailed decisions are documented in [`docs/architecture.md`](docs/architecture.md).
+
+## Application Preview
+
+![Launchboard job search](docs/screenshots/job-search.png)
+
+## Local Setup
+
+From the Job Portal directory:
+
+```bash
+cd Resume-projects/job-portal
+```
+
+Windows PowerShell:
 
 ```powershell
-$env:DATABASE_URL="jdbc:postgresql://localhost:5432/jobportal"
-$env:DATABASE_USERNAME="jobportal"
-$env:DATABASE_PASSWORD="your-password"
-$env:JWT_SECRET="replace-with-at-least-32-random-characters"
+.\mvnw.cmd spring-boot:run
+```
+
+macOS or Linux:
+
+```bash
 ./mvnw spring-boot:run
 ```
 
-Or start the complete application and PostgreSQL stack:
+Open http://localhost:8080. The default configuration uses an in-memory H2 database and fictional sample data.
 
-```bash
-docker compose up --build
-```
-
-## API documentation
-
-After starting the app:
-
-- Swagger UI: http://localhost:8080/swagger-ui.html
-- OpenAPI JSON: http://localhost:8080/v3/api-docs
-- Postman: import [`postman/Job-Portal.postman_collection.json`](postman/Job-Portal.postman_collection.json)
-
-Important endpoint groups:
-
-| Area | Endpoints |
-|---|---|
-| Authentication | `POST /api/auth/register`, `POST /api/auth/login` |
-| Public jobs | `GET /api/jobs`, `GET /api/jobs/{id}` |
-| Candidate | `/api/candidate/profile`, `/resume`, `/applications` |
-| Recruiter | `/api/recruiter/companies`, `/jobs`, `/applications`, `/analytics` |
-
-Protected requests use `Authorization: Bearer <token>`.
-
-## Tests
+Run the tests:
 
 ```bash
 ./mvnw test
 ```
 
-The test suite includes service-level business-rule coverage and Spring Boot/MockMvc integration tests for public job search, JWT login, candidate API access, and role isolation.
+## PostgreSQL Configuration
+
+Set these environment variables:
+
+```text
+DATABASE_URL=jdbc:postgresql://localhost:5432/jobportal
+DATABASE_USERNAME=jobportal
+DATABASE_PASSWORD=your-password
+JWT_SECRET=replace-with-at-least-32-random-characters
+DDL_AUTO=update
+```
+
+Or run the application and PostgreSQL together:
+
+```bash
+docker compose up --build
+```
+
+## API Documentation
+
+After starting the application:
+
+- Swagger UI: http://localhost:8080/swagger-ui.html
+- OpenAPI JSON: http://localhost:8080/v3/api-docs
+- Postman collection: [`postman/Job-Portal.postman_collection.json`](postman/Job-Portal.postman_collection.json)
+
+Protected requests use `Authorization: Bearer <token>`.
 
 ## Deployment
 
-The included multi-stage `Dockerfile` can be deployed to Render, Railway, Fly.io, or another container host.
+The live application is deployed as a Docker web service on Render with a dedicated PostgreSQL database. Render builds the `Resume-projects/job-portal` monorepo directory and automatically redeploys changes pushed to `main`.
 
-1. Provision PostgreSQL.
-2. Deploy this folder using the `Dockerfile`.
-3. Set `DATABASE_URL` to a JDBC URL beginning with `jdbc:postgresql://`.
-4. Set `DATABASE_USERNAME`, `DATABASE_PASSWORD`, and a strong `JWT_SECRET`.
-5. Set `DDL_AUTO=update` for the MVP deployment.
-6. Configure persistent object storage before relying on uploaded resumes in production.
+Production environment variables are stored in Render and are not committed to GitHub.
 
-## Security and production boundaries
+## Limitations
 
-- Passwords are never stored in plaintext.
-- JWTs expire after eight hours by default.
-- Candidate and recruiter routes are role protected.
-- Uploaded resumes are type-checked and limited to 5 MB.
-- Secrets are supplied through environment variables, never committed.
-- Local filesystem resume storage is suitable for this portfolio MVP; production systems should use private object storage, malware scanning, retention rules, email verification, rate limiting, and audited authorization.
+- This is a portfolio MVP, not a production applicant-tracking system.
+- Resume files use local storage; production should use private object storage.
+- Sample accounts and data are fictional.
+- Refresh-token rotation, password recovery, and email verification are not implemented.
+- Free hosting may sleep during inactivity and has limited database capacity.
 
-## Resume description
+## Resume Bullet
 
-**Job Portal — Full-Stack Recruiting Platform**  
-Java · Spring Boot · REST APIs · PostgreSQL · Spring Security · JWT · HTML · CSS · JavaScript
+Built and deployed Launchboard, a full-stack recruiting platform using Java, Spring Boot, PostgreSQL, Spring Security, and JWT, with role-specific candidate and recruiter workflows, searchable job listings, resume uploads, application tracking, hiring-stage management, analytics, documented REST APIs, and automated tests.
 
-- Built a full-stack recruiting platform with role-specific candidate and recruiter workflows, job search, resume upload, applications, pipeline management, and analytics.
-- Designed a layered Spring Boot REST API with JPA relationships, DTO validation, pagination, centralized error handling, BCrypt password storage, and JWT role authorization.
-- Added responsive vanilla JavaScript UI, OpenAPI documentation, Postman workflows, Docker/PostgreSQL deployment, and unit and integration tests.
+## Author
+
+**Nishita Reddy Yaduguri**  
+Computer Science and Data Science, University of Wisconsin–Madison
