@@ -207,7 +207,10 @@ elif page == "Records Assistant":
     st.markdown('<div class="welcome">Source-cited record search</div>', unsafe_allow_html=True)
     st.markdown("# Ask CareBridge about your records")
     st.markdown('<p class="lede">Answers are grounded in the available documents and show the supporting evidence.</p>', unsafe_allow_html=True)
-    st.info("CareBridge is using private local record search. Source search and citations remain available without an external AI service.")
+    if os.getenv("OPENAI_API_KEY"):
+        st.info("CareBridge creates a grounded response from the records available in this workspace. Supporting sources are always shown.")
+    else:
+        st.info("CareBridge is using local record search. Source search and citations remain available while AI-assisted answers are unavailable.")
     left,right = st.columns([1,1], gap="large")
     with left:
         st.markdown("### Questions for your provider")

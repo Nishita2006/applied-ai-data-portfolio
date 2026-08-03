@@ -78,7 +78,7 @@ Answers include:
 - Retrieval score
 - A clear response when there is not enough evidence
 
-The assistant works without an external model key by using local record retrieval. An optional model-backed response layer can be enabled, but it uses the same retrieved sources and safety restrictions.
+When an OpenAI API key is configured, LangChain sends only the retrieved excerpts and the user's question to the model to compose a grounded answer. The same citations and safety restrictions remain in place. Local retrieval is the automatic fallback if the model is unavailable.
 
 ### 6. Visit Brief
 
@@ -166,12 +166,6 @@ pip install -r requirements.txt
 streamlit run app.py
 ```
 
-The standard installation includes the complete local record-search workflow. To enable the optional model-backed response layer, install:
-
-```bash
-pip install -r requirements-ai.txt
-```
-
 Run the tests:
 
 ```bash
@@ -179,16 +173,16 @@ pip install -r requirements-dev.txt
 pytest
 ```
 
-## Optional Model Configuration
+## OpenAI Model Configuration
 
 CareBridge remains usable without an API key. To enable the optional model-backed response layer, add these values to Streamlit secrets or environment variables:
 
 ```toml
 OPENAI_API_KEY = "your-api-key"
-OPENAI_MODEL = "gpt-4o-mini"
+OPENAI_MODEL = "gpt-5.6-luna"
 ```
 
-Do not commit secret files or API keys.
+For Streamlit Community Cloud, add these values under **App settings → Secrets**. Do not put the real key in `.env`, source code, Git commits, or screenshots. The app's ignored `.streamlit/secrets.toml` file may be used for local development.
 
 ## Limitations
 
