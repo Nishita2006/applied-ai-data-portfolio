@@ -36,3 +36,13 @@ def test_document_intelligence_exposes_source_previews():
     app.toggle[0].set_value(True).run()
     assert not app.exception
     assert any("Reason for referral" in item.value for item in app.markdown)
+
+
+def test_symptom_page_saves_responses_without_rewriting_ui():
+    app_path = Path(__file__).resolve().parents[1] / "app.py"
+    app = AppTest.from_file(str(app_path), default_timeout=30).run()
+    app.radio[0].set_value("Symptoms & Timeline").run()
+    labels = [button.label for button in app.button]
+    assert "Save response" in labels
+    assert "Organize my description" not in labels
+    assert not any("Clearer draft" in area.label for area in app.text_area)

@@ -49,7 +49,7 @@ Progress is saved in SQLite.
 
 Patients can review symptom onset, severity, and patterns, then enter a new description in their own words.
 
-CareBridge can organize the wording into a clearer draft while preserving the original entry. The patient must review the draft before using it.
+CareBridge saves each response exactly as the patient entered it. It does not rewrite or reinterpret the patient's description.
 
 Medication and allergy information remains visible alongside symptom preparation. CareBridge never recommends starting, stopping, or changing medication.
 

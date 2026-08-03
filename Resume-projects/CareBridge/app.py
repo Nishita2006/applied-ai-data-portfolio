@@ -11,7 +11,6 @@ from src.analytics import preparation_score, symptom_chart
 from src.database import execute, initialize, query
 from src.export import build_visit_pdf
 from src.ml import classify_document_details
-from src.nlp import organize_symptom
 from src.rag import answer, load_record_chunks
 from src.records import RECORD_TEXT
 
@@ -71,6 +70,7 @@ with st.sidebar:
 
 tasks = query("SELECT * FROM preparation_tasks WHERE appointment_id = 1")
 symptoms = query("SELECT * FROM symptoms WHERE appointment_id = 1")
+symptom_responses = query("SELECT id,response_text,created_at FROM symptom_responses WHERE appointment_id = 1 ORDER BY id DESC")
 appointment = query("SELECT * FROM appointments WHERE id = 1").iloc[0]
 medications = query("SELECT name,strength,frequency,status FROM medications WHERE patient_id = 1")
 documents = query("SELECT title,category,organization,citation FROM documents WHERE appointment_id = 1")
@@ -144,13 +144,26 @@ elif page == "Symptoms & Timeline":
             for row in symptoms.itertuples():
                 st.markdown(f'<div class="soft-card"><b>{row.symptom}</b> · {row.severity}/10<br><small>Started {row.onset_date} · {row.pattern}</small></div>', unsafe_allow_html=True)
         st.markdown("### Add what you noticed")
-        symptom_text = st.text_area("Describe the symptom in your own words", placeholder="When did it begin? What does it feel like? What makes it better or worse?")
-        if st.button("Organize my description", type="primary") and symptom_text:
-            result = organize_symptom(symptom_text)
-            st.markdown('<div class="safe"><b>Draft organized for review</b><br>Your original wording is preserved below.</div>', unsafe_allow_html=True)
-            st.text_area("Original entry", result["original"], disabled=True)
-            st.text_area("Clearer draft", result["organized"])
-            st.caption("Review and edit this wording before including it in your visit packet.")
+        if st.session_state.pop("symptom_response_saved", False):
+            st.success("Your response was saved exactly as entered.")
+        response_text = st.text_area("Describe what you noticed in your own words", placeholder="When did it begin? What does it feel like? What makes it better or worse?")
+        if st.button("Save response", type="primary"):
+            if response_text.strip():
+                execute(
+                    "INSERT INTO symptom_responses (appointment_id,response_text) VALUES (?,?)",
+                    (1, response_text),
+                )
+                st.session_state.symptom_response_saved = True
+                st.rerun()
+            else:
+                st.warning("Enter a response before saving.")
+        if not symptom_responses.empty:
+            st.markdown("### Saved responses")
+            for row in symptom_responses.itertuples():
+                st.markdown(
+                    f'<div class="soft-card">{escape(row.response_text)}<br><small>Saved {escape(row.created_at)}</small></div>',
+                    unsafe_allow_html=True,
+                )
     with medicine_tab:
         st.markdown("### Current medications")
         st.dataframe(medications, hide_index=True, width="stretch", column_config={"name":"Medication","strength":"Strength","frequency":"How often","status":"Status"})
