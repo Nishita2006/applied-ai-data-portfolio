@@ -24,6 +24,10 @@ def initialize(path: Path = DB_PATH) -> None:
         count = connection.execute("SELECT COUNT(*) FROM patients").fetchone()[0]
         if count == 0:
             connection.executescript(SEED_PATH.read_text(encoding="utf-8"))
+        # Migrate labels created by earlier student-MVP versions.
+        connection.execute("UPDATE documents SET title='Blood panel report' WHERE title='Synthetic blood panel'")
+        connection.execute("UPDATE documents SET title='Insurance card' WHERE title='Demo insurance card'")
+        connection.commit()
 
 
 def query(sql: str, params: tuple = (), path: Path = DB_PATH) -> pd.DataFrame:
@@ -35,4 +39,3 @@ def execute(sql: str, params: tuple = (), path: Path = DB_PATH) -> None:
     with connect(path) as connection:
         connection.execute(sql, params)
         connection.commit()
-

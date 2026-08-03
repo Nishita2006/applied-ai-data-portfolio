@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from html import escape
 from pathlib import Path
 
 import pandas as pd
@@ -12,6 +13,7 @@ from src.export import build_visit_pdf
 from src.ml import classify_document_details
 from src.nlp import organize_symptom
 from src.rag import answer, load_record_chunks
+from src.records import RECORD_TEXT
 
 ROOT = Path(__file__).parent
 
@@ -47,6 +49,7 @@ h1,h2,h3{color:#16384a;letter-spacing:-.02em}.hero{background:linear-gradient(13
 .soft-card{background:white;border:1px solid var(--line);padding:1rem 1.1rem;border-radius:13px;margin:.55rem 0;box-shadow:0 4px 18px rgba(24,49,59,.04)}
 .attention{background:#fff2d9;border-left:4px solid var(--amber);padding:.85rem 1rem;border-radius:7px;font-size:.9rem}.safe{background:#e8f3f0;border-left:4px solid var(--teal);padding:.85rem 1rem;border-radius:7px;font-size:.9rem}
 .source{display:inline-block;background:#e5f1ee;color:#256a62;padding:.2rem .48rem;border-radius:5px;font-size:.72rem;margin:.15rem .25rem .15rem 0}
+.record-page{background:#fff;border:1px solid #d5dfdc;border-radius:10px;padding:1.35rem 1.5rem;margin:.7rem 0;box-shadow:0 8px 24px rgba(24,49,59,.06);white-space:pre-wrap;line-height:1.65;color:#263c45}
 .step{width:30px;height:30px;border-radius:50%;background:#dcece8;color:#246c64;display:inline-grid;place-items:center;font-weight:700;margin-right:.5rem}
 div[data-testid=stMetric]{background:white;border:1px solid var(--line);padding:1rem;border-radius:13px;box-shadow:0 4px 18px rgba(24,49,59,.04)}
 .stButton>button,.stDownloadButton>button{border-radius:9px;font-weight:650}.stButton>button[kind=primary]{background:var(--teal);border-color:var(--teal)}
@@ -163,6 +166,16 @@ elif page == "Document Intelligence":
         with st.expander(f"{row.title} · {row.category}"):
             st.markdown(f'<div class="soft-card"><b>{row.title}</b><br><small>{row.category} · {row.organization}</small><br><span class="source">Source: {row.citation}</span></div>', unsafe_allow_html=True)
             st.caption("Fictional document metadata for this public patient workspace.")
+            record_text = RECORD_TEXT.get(row.title, "A source preview is not available for this record.")
+            if st.toggle(f"View source — {row.citation}", key=f"preview-{row.Index}"):
+                st.markdown(f'<div class="record-page">{escape(record_text)}</div>', unsafe_allow_html=True)
+                st.download_button(
+                    "Download record",
+                    record_text,
+                    file_name=f"{row.title.lower().replace(' ', '-')}.txt",
+                    mime="text/plain",
+                    key=f"download-record-{row.Index}",
+                )
     st.markdown("### Add a record")
     st.button("Use example record", on_click=lambda: st.session_state.update(document_text="Laboratory blood results. Specimen collected August 21. Values include reference ranges and a follow-up instruction."))
     uploaded = st.file_uploader("Choose a text record", type=["txt"], help="This MVP reads TXT files and does not permanently save uploads.")
