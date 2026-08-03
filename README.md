@@ -13,6 +13,7 @@ This repository documents my work in Python, data analysis, NLP, machine learnin
 | [ClaimLens: Insurance Claim Triage Assistant](Resume-projects/claimlens-insurance-claim-triage)             | Risk scoring, evidence review, document intelligence       | Completed |
 | [PermitPal: City Permit Compliance Assistant](Resume-projects/permitpal-city-permit-compliance)             | Rule-based reasoning, civic tech, compliance support       | Completed |
 | [CareBridge: Patient Visit Prep Assistant](Resume-projects/CareBridge)                                      | Healthcare admin, ML, NLP, and source-cited retrieval       | [Live MVP](https://carebridge-ai.streamlit.app/) |
+| [Job Portal: Full-Stack Recruiting Platform](Resume-projects/job-portal)                                    | Java, Spring Boot, REST APIs, PostgreSQL, JWT               | Completed |
 
 ## Repository Structure
 
@@ -33,7 +34,8 @@ applied-ai-data-portfolio/
 │   ├── OfferPilot_Role_Simulation_Hiring_Assistant/
 │   ├── claimlens-insurance-claim-triage/
 │   ├── permitpal-city-permit-compliance/
-│   └── CareBridge/
+│   ├── CareBridge/
+│   └── job-portal/
 │
 ├── requirements.txt
 ├── runtime.txt
@@ -51,6 +53,10 @@ applied-ai-data-portfolio/
 * Resume and document parsing
 * Risk and decision-support logic
 * Git and GitHub project organization
+* Java and object-oriented programming
+* Spring Boot REST API development
+* Relational database design with PostgreSQL and JPA
+* Spring Security, BCrypt, and JWT authorization
 
 ## Project Theme
 
@@ -127,6 +133,21 @@ A deployed patient visit preparation MVP that brings appointment readiness, pati
 * Source-cited record retrieval with insufficient-evidence handling
 * Provider question preparation and PDF/CSV visit-brief export
 * Automated tests and deployment on Streamlit Community Cloud
+
+---
+
+### [Job Portal: Full-Stack Recruiting Platform](Resume-projects/job-portal)
+
+A production-style recruiting application with separate candidate and recruiter workspaces, secure authentication, persistent relational data, and a responsive frontend.
+
+**Highlights:**
+
+* Candidate profiles, resume uploads, job search, applications, and status tracking
+* Company profiles, job publishing, applicant filtering, hiring stages, and analytics
+* Layered Spring Boot architecture with controllers, services, repositories, entities, and DTOs
+* BCrypt password hashing, signed JWT authentication, and role-based API authorization
+* PostgreSQL-ready JPA model with validation, pagination, sorting, and search filters
+* Swagger/OpenAPI docs, Postman collection, Docker deployment, and automated tests
 
 ## Current Focus
 
