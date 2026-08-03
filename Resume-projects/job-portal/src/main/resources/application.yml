@@ -1,0 +1,25 @@
+spring:
+  datasource:
+    url: ${DATABASE_URL:jdbc:h2:mem:jobportal;MODE=PostgreSQL;DB_CLOSE_DELAY=-1}
+    username: ${DATABASE_USERNAME:sa}
+    password: ${DATABASE_PASSWORD:}
+  jpa:
+    hibernate:
+      ddl-auto: ${DDL_AUTO:update}
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 5MB
+server:
+  port: ${PORT:8080}
+app:
+  jwt-secret: ${JWT_SECRET:change-this-development-secret-key-32chars}
+  jwt-hours: ${JWT_HOURS:8}
+  upload-dir: ${UPLOAD_DIR:uploads}
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
