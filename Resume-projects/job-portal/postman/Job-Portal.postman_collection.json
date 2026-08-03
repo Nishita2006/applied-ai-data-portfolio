@@ -1,0 +1,13 @@
+{
+  "info":{"name":"Job Portal API","schema":"https://schema.getpostman.com/json/collection/v2.1.0/collection.json","description":"Candidate and recruiter workflows. Login requests save the JWT into the collection token variable."},
+  "variable":[{"key":"baseUrl","value":"http://localhost:8080"},{"key":"token","value":""}],
+  "item":[
+    {"name":"Authentication","item":[
+      {"name":"Candidate login","event":[{"listen":"test","script":{"exec":["pm.collectionVariables.set('token', pm.response.json().token);"]}}],"request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\"email\":\"candidate@example.com\",\"password\":\"Password123!\"}"},"url":"{{baseUrl}}/api/auth/login"}},
+      {"name":"Register candidate","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\"name\":\"Alex Rivera\",\"email\":\"alex@example.com\",\"password\":\"Password123!\",\"role\":\"CANDIDATE\"}"},"url":"{{baseUrl}}/api/auth/register"}}
+    ]},
+    {"name":"Jobs","item":[{"name":"Search jobs","request":{"method":"GET","url":"{{baseUrl}}/api/jobs?q=Java&location=&page=0&size=12"}},{"name":"Get job","request":{"method":"GET","url":"{{baseUrl}}/api/jobs/1"}}]},
+    {"name":"Candidate","item":[{"name":"Get profile","request":{"method":"GET","header":[{"key":"Authorization","value":"Bearer {{token}}"}],"url":"{{baseUrl}}/api/candidate/profile"}},{"name":"Apply","request":{"method":"POST","header":[{"key":"Authorization","value":"Bearer {{token}}"},{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\"jobId\":1,\"coverNote\":\"I am excited to contribute.\"}"},"url":"{{baseUrl}}/api/candidate/applications"}},{"name":"Track applications","request":{"method":"GET","header":[{"key":"Authorization","value":"Bearer {{token}}"}],"url":"{{baseUrl}}/api/candidate/applications"}}]},
+    {"name":"Recruiter","item":[{"name":"Analytics","request":{"method":"GET","header":[{"key":"Authorization","value":"Bearer {{token}}"}],"url":"{{baseUrl}}/api/recruiter/analytics"}},{"name":"Applicants","request":{"method":"GET","header":[{"key":"Authorization","value":"Bearer {{token}}"}],"url":"{{baseUrl}}/api/recruiter/applications"}}]}
+  ]
+}
