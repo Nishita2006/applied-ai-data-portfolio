@@ -12,7 +12,7 @@ This repository documents my work in Python, data analysis, NLP, machine learnin
 | [OfferPilot: Role Simulation Hiring Assistant](Resume-projects/OfferPilot_Role_Simulation_Hiring_Assistant) | LLM apps, resume screening, scoring workflows              | Completed |
 | [ClaimLens: Insurance Claim Triage Assistant](Resume-projects/claimlens-insurance-claim-triage)             | Risk scoring, evidence review, document intelligence       | Completed |
 | [PermitPal: City Permit Compliance Assistant](Resume-projects/permitpal-city-permit-compliance)             | Rule-based reasoning, civic tech, compliance support       | Completed |
-| [CareBridge: Patient Visit Prep Assistant](Resume-projects/carebridge-patient-visit-prep)                   | Healthcare admin, summarization, patient support workflows | Completed |
+| [CareBridge: Patient Visit Prep Assistant](Resume-projects/CareBridge)                                      | Healthcare admin, ML, NLP, and source-cited retrieval       | [Live MVP](https://carebridge-ai.streamlit.app/) |
 
 ## Repository Structure
 
@@ -33,7 +33,7 @@ applied-ai-data-portfolio/
 │   ├── OfferPilot_Role_Simulation_Hiring_Assistant/
 │   ├── claimlens-insurance-claim-triage/
 │   ├── permitpal-city-permit-compliance/
-│   └── carebridge-patient-visit-prep/
+│   └── CareBridge/
 │
 ├── requirements.txt
 ├── runtime.txt
@@ -113,21 +113,24 @@ A civic-tech assistant that helps users understand possible permit requirements,
 
 ---
 
-### CareBridge: Patient Visit Prep Assistant
+### [CareBridge: Patient Visit Prep Assistant](Resume-projects/CareBridge)
 
-A healthcare admin assistant concept that helps organize patient visit information, prepare questions, and create structured visit summaries before appointments.
+A deployed patient visit preparation MVP that brings appointment readiness, patient-entered symptoms, medications, records, provider questions, and a downloadable visit brief into one accessible workspace. The public application uses only fictional patient information.
+
+**[Open the live application](https://carebridge-ai.streamlit.app/)**
 
 **Highlights:**
 
-* Visit reason and symptom organization
-* Missing information checks
-* Suggested patient questions
-* Structured visit summary
-* Future RAG-ready structure
+* Appointment readiness tracking with SQLite-backed storage
+* Patient responses saved exactly as entered
+* Explainable TF-IDF and logistic-regression document classification
+* Source-cited record retrieval with insufficient-evidence handling
+* Provider question preparation and PDF/CSV visit-brief export
+* Automated tests and deployment on Streamlit Community Cloud
 
 ## Current Focus
 
-These projects are completed MVPs that demonstrate applied AI, data processing, workflow design, and decision-support logic. Future improvements may include stronger model evaluation, expanded datasets, RAG integrations, and more advanced LLM-based features.
+These projects are completed MVPs that demonstrate applied AI, data processing, workflow design, and decision-support logic. Current work focuses on stronger model evaluation, expanded datasets, responsible source-grounded retrieval, and production-minded application design.
 
 ## Author
 
