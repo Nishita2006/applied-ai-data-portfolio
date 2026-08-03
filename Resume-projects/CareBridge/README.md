@@ -200,6 +200,8 @@ Built CareBridge, an AI-assisted patient visit preparation MVP that organizes ap
 
 ## Author
 
-**Nishita Reddy Yaduguri**  
-Computer Science and Data Science, University of Wisconsin–Madison  
+**Nishita Reddy Yaduguri**
+
+Computer Science and Data Science, University of Wisconsin–Madison
+
 GitHub: https://github.com/Nishita2006
