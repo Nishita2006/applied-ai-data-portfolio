@@ -35,9 +35,9 @@ Job searches and recruiting pipelines often become scattered across job boards, 
 
 Users register as a candidate or recruiter and sign in with email and password. Passwords are hashed with BCrypt, and the API returns an expiring signed JWT. Spring Security protects candidate and recruiter endpoints by role.
 
-### 2. Job Discovery
+### 2. Live Job Discovery
 
-Candidates search open jobs by title, company, skill, and location. The API supports pagination and sorting. Job details include employment type, skills, salary range, description, company, and posting status.
+Candidates search current remote openings supplied by the Remotive public jobs API alongside roles published directly by Launchboard recruiters. Every external listing is source-labeled and links to its original application page. A short server-side cache limits upstream requests, and the local PostgreSQL feed remains available if the external provider is temporarily unreachable.
 
 ### 3. Candidate Workspace
 
@@ -90,6 +90,7 @@ Production use would additionally require email verification, password recovery,
 - Spring Web and REST APIs
 - Spring Data JPA and Hibernate
 - Spring Security and JWT
+- RestClient integration with the Remotive jobs API
 - PostgreSQL and H2
 - HTML, CSS, and JavaScript
 - OpenAPI and Swagger UI
@@ -194,13 +195,13 @@ Production environment variables are stored in Render and are not committed to G
 
 - This is a portfolio MVP, not a production applicant-tracking system.
 - Resume files use local storage; production should use private object storage.
-- Sample accounts and data are fictional.
+- Sample accounts and recruiter-created seed data are fictional; external listings are supplied by Remotive and may change or expire.
 - Refresh-token rotation, password recovery, and email verification are not implemented.
 - Free hosting may sleep during inactivity and has limited database capacity.
 
 ## Resume Bullet
 
-Built and deployed Launchboard, a full-stack recruiting platform using Java, Spring Boot, PostgreSQL, Spring Security, and JWT, with role-specific candidate and recruiter workflows, searchable job listings, resume uploads, application tracking, hiring-stage management, analytics, documented REST APIs, and automated tests.
+Built and deployed Launchboard, a full-stack recruiting platform using Java, Spring Boot, PostgreSQL, Spring Security, and JWT, integrating a cached live jobs API with role-specific candidate and recruiter workflows, resume uploads, application tracking, hiring-stage management, analytics, documented REST APIs, and automated tests.
 
 ## Author
 
