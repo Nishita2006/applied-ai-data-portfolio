@@ -574,19 +574,7 @@ for key, default_value in DEFAULT_STATE.items():
     if key not in st.session_state:
         st.session_state[key] = default_value
 
-try:
-    AUTH_REQUIRED = str(st.secrets.get("ENABLE_AUTH", "false")).lower() in {
-        "1", "true", "yes", "on"
-    }
-except Exception:
-    AUTH_REQUIRED = True
-
-if not AUTH_REQUIRED and not st.session_state.workspace_user:
-    st.session_state.workspace_user = {
-        "email": "local@offerpilot",
-        "name": "Local workspace",
-        "role": "admin",
-    }
+AUTH_REQUIRED = True
 
 portal_token = st.query_params.get("portal_token", "")
 if portal_token:
@@ -637,34 +625,47 @@ if portal_token:
     st.stop()
 
 if AUTH_REQUIRED and not st.session_state.workspace_user:
-    st.markdown("## Hiring workspace sign in")
-    st.caption("Secure access for recruiters and hiring managers.")
+    st.markdown(
+        """
+        <div class="role-header-card" style="max-width:720px;margin:8vh auto 1rem;">
+            <div class="eyebrow">Secure recruiter access</div>
+            <div class="role-title-large">Hiring Intelligence Workspace</div>
+            <p class="muted">Sign in to review roles, candidates, evidence, interviews, and decisions.</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    _, login_column, _ = st.columns([1, 1.35, 1])
+    with login_column:
+        st.markdown("### Create workspace" if user_count() == 0 else "### Sign in")
     if user_count() == 0:
-        st.info("Create the first administrator account for this workspace.")
-        with st.form("first_admin_form"):
-            admin_name = st.text_input("Administrator name")
-            admin_email = st.text_input("Administrator email")
-            admin_password = st.text_input("Password", type="password")
-            create_admin = st.form_submit_button("Create administrator")
-        if create_admin:
-            try:
-                create_user(admin_email, admin_name, "admin", admin_password)
-                st.success("Administrator created. Sign in below.")
-                st.rerun()
-            except Exception as exc:
-                st.error(str(exc))
+        with login_column:
+            st.info("First visit: create the administrator who will manage recruiter accounts.")
+            with st.form("first_admin_form"):
+                admin_name = st.text_input("Full name")
+                admin_email = st.text_input("Work email")
+                admin_password = st.text_input("Password", type="password", help="Use at least 10 characters.")
+                create_admin = st.form_submit_button("Create account and continue", type="primary", use_container_width=True)
+            if create_admin:
+                try:
+                    create_user(admin_email, admin_name, "admin", admin_password)
+                    st.session_state.workspace_user = authenticate_user(admin_email, admin_password)
+                    st.rerun()
+                except Exception as exc:
+                    st.error(str(exc))
     else:
-        with st.form("workspace_login_form"):
-            login_email = st.text_input("Email")
-            login_password = st.text_input("Password", type="password")
-            login_clicked = st.form_submit_button("Sign in", type="primary")
-        if login_clicked:
-            user = authenticate_user(login_email, login_password)
-            if user:
-                st.session_state.workspace_user = user
-                st.rerun()
-            else:
-                st.error("Invalid email or password.")
+        with login_column:
+            with st.form("workspace_login_form"):
+                login_email = st.text_input("Work email")
+                login_password = st.text_input("Password", type="password")
+                login_clicked = st.form_submit_button("Sign in", type="primary", use_container_width=True)
+            if login_clicked:
+                user = authenticate_user(login_email, login_password)
+                if user:
+                    st.session_state.workspace_user = user
+                    st.rerun()
+                else:
+                    st.error("The email or password is incorrect.")
     st.stop()
 
 
@@ -1595,37 +1596,17 @@ with st.sidebar:
 
 
 # ============================================================
-# HERO
+# WORKSPACE HEADER
 # ============================================================
 
+active_role_name = st.session_state.jd_analysis.get("role_title", "No active role")
+signed_in_name = (st.session_state.workspace_user or {}).get("name", "Recruiter")
 st.markdown(
-    """
-    <div class="hero">
-        <div class="eyebrow">Hiring intelligence · Human decision support</div>
-        <h1 class="hero-title">
-            Find stronger candidates with
-            <span class="gradient-text">evidence, not just keywords.</span>
-        </h1>
-        <p class="hero-copy">
-            OfferPilot combines job analysis, explainable resume matching,
-            role-specific work simulations, structured scoring, and recruiter
-            decision tracking in one review workspace.
-        </p>
-        <span class="mini-pill">Explainable matching</span>
-        <span class="mini-pill">Role simulations</span>
-        <span class="mini-pill">Human-in-the-loop decisions</span>
-        <span class="mini-pill">Exportable review evidence</span>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
-
-st.markdown(
-    """
-    <div class="disclaimer">
-        <strong>Responsible use:</strong> OfferPilot supports recruiter review. It
-        should not make autonomous employment decisions or use protected attributes.
-        Final decisions require qualified human judgment and role-relevant evidence.
+    f"""
+    <div class="role-header-card">
+        <div class="eyebrow">Recruiter dashboard</div>
+        <div class="role-title-large">Welcome, {signed_in_name}</div>
+        <div class="role-meta">Active role: {active_role_name} &nbsp;·&nbsp; Human-reviewed decision support</div>
     </div>
     """,
     unsafe_allow_html=True,

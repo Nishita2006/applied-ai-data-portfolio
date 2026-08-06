@@ -8,11 +8,8 @@ OfferPilot now includes a persistent SQLite platform layer, optional enforced wo
 
 ## Platform configuration
 
-Recruiter authentication is enabled by default. To explicitly disable it for an isolated local demo, add:
-
-```toml
-ENABLE_AUTH = false
-```
+Recruiter authentication is enforced. On first launch, create the initial administrator;
+subsequent visits open the recruiter sign-in page.
 
 On the first authenticated launch, OfferPilot asks you to create the initial administrator. Administrators can add recruiter and hiring-manager accounts from **8 · Platform Operations**.
 
