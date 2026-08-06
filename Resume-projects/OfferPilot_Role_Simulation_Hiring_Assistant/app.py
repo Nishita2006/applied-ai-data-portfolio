@@ -8,12 +8,56 @@ import streamlit as st
 
 from src.job_parser import jd_skill_extractor
 from src.resume_reader import extract_text_from_pdf
-from src.llm_client import ask_llm, is_llm_available
+from src.llm_client import ask_llm, is_llm_available, transcribe_audio
+from src.interview_analyzer import analyze_interview_transcript
+from src.profile_verifier import (
+    compare_resume_with_profiles,
+    extract_profile_links,
+    fetch_public_github_evidence,
+)
+from src.candidate_updates import (
+    MILESTONES,
+    STATUS_OPTIONS,
+    build_status_message,
+    extract_phone_number,
+    extract_email_address,
+    milestone_progress,
+    send_twilio_sms,
+    validate_phone_number,
+)
+from src.platform_services import (
+    add_candidate_request,
+    authenticate_user,
+    create_portal_token,
+    create_user,
+    init_platform_db,
+    list_audit_events,
+    list_benchmarks,
+    list_candidate_requests,
+    list_candidates as list_persisted_candidates,
+    list_interviews,
+    list_jobs,
+    list_users,
+    log_communication,
+    resolve_portal_token,
+    save_benchmark,
+    save_candidate,
+    save_interview,
+    save_job,
+    send_smtp_email,
+    user_count,
+)
+
+init_platform_db()
 from src.llm_jd_analyzer import analyze_job_description_with_llm
-from src.llm_simulation_generator import generate_simulation_task_with_llm
+from src.llm_simulation_generator import (
+    generate_candidate_questions_with_llm,
+    generate_simulation_task_with_llm,
+)
 from src.llm_rubric_scorer import score_simulation_response_with_llm
 from src.llm_signal_card import generate_signal_card_with_llm
 from src.semantic_matcher import (
+    build_contextual_match_report,
     calculate_hybrid_candidate_score,
     find_jd_skills_in_resume_text,
     get_review_priority,
@@ -27,7 +71,7 @@ from src.semantic_matcher import (
 # ============================================================
 
 st.set_page_config(
-    page_title="OfferPilot | Hiring Intelligence",
+    page_title="Hiring Intelligence Workspace",
     page_icon="✦",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -42,6 +86,7 @@ st.markdown(
     """
     <style>
         :root {
+            color-scheme: light dark;
             --op-bg: #07111f;
             --op-panel: #0d1b2d;
             --op-panel-2: #11233a;
@@ -53,6 +98,23 @@ st.markdown(
             --op-success: #2dd4bf;
             --op-warning: #fbbf24;
             --op-danger: #fb7185;
+        }
+
+        @media (prefers-color-scheme: light) {
+            :root {
+                --op-bg: #f4f7fb; --op-panel: #ffffff; --op-panel-2: #edf3fa;
+                --op-border: rgba(30, 41, 59, 0.16); --op-text: #172033;
+                --op-muted: #53657b; --op-primary: #6d4aff; --op-primary-2: #087ea4;
+                --op-success: #087f68; --op-warning: #a15c00; --op-danger: #be3455;
+            }
+            [data-testid="stHeader"] { background: rgba(244,247,251,.88) !important; }
+            [data-testid="stSidebar"] { background: #fff !important; }
+            .hero-title { color: #172033 !important; }
+            .hero, .candidate-card, .section-card, .success-card, .role-header-card {
+                background: rgba(255,255,255,.94) !important;
+                box-shadow: 0 14px 35px rgba(31,41,55,.08) !important;
+            }
+            .mini-pill { color: #25344a !important; background: #f7f9fc !important; }
         }
 
         .stApp {
@@ -69,7 +131,7 @@ st.markdown(
         }
 
         [data-testid="stSidebar"] {
-            background: #091524;
+            background: var(--op-panel);
             border-right: 1px solid var(--op-border);
         }
 
@@ -491,13 +553,119 @@ DEFAULT_STATE = {
     "candidate_resume_texts": {},
     "candidate_skill_evidence": {},
     "skill_verification_results": {},
+    "candidate_ats_reports": {},
+    "interview_transcripts": {},
+    "interview_analyses": {},
+    "interview_consent": {},
+    "profile_verifications": {},
+    "candidate_contacts": {},
+    "candidate_milestones": {},
+    "candidate_sms_logs": {},
+    "workspace_user": None,
+    "active_job_id": None,
+    "candidate_db_ids": {},
     "screening_completed": False,
     "demo_mode": False,
+    "assistant_messages": [],
+    "returning_candidate_alerts": [],
 }
 
 for key, default_value in DEFAULT_STATE.items():
     if key not in st.session_state:
         st.session_state[key] = default_value
+
+try:
+    AUTH_REQUIRED = str(st.secrets.get("ENABLE_AUTH", "false")).lower() in {
+        "1", "true", "yes", "on"
+    }
+except Exception:
+    AUTH_REQUIRED = True
+
+if not AUTH_REQUIRED and not st.session_state.workspace_user:
+    st.session_state.workspace_user = {
+        "email": "local@offerpilot",
+        "name": "Local workspace",
+        "role": "admin",
+    }
+
+portal_token = st.query_params.get("portal_token", "")
+if portal_token:
+    portal_candidate = resolve_portal_token(portal_token)
+    st.markdown("## OfferPilot candidate portal")
+    if not portal_candidate:
+        st.error("This candidate portal link is invalid, expired, or revoked.")
+        st.stop()
+    try:
+        portal_workflow = json.loads(portal_candidate.get("workflow_json") or "{}")
+    except Exception:
+        portal_workflow = {}
+    portal_statuses = portal_workflow.get("milestones", {})
+    if not portal_statuses:
+        portal_statuses = {
+            key: "Completed" if key == "application_received" else "Not started"
+            for key, _ in MILESTONES
+        }
+    st.success(f'Welcome, {portal_candidate["name"]}.')
+    portal_progress = milestone_progress(portal_statuses)
+    st.progress(portal_progress, text=f"Application progress · {round(portal_progress * 100)}%")
+    portal_rows = [
+        {
+            "Milestone": label,
+            "Status": portal_statuses.get(key, "Not started"),
+        }
+        for key, label in MILESTONES
+    ]
+    st.dataframe(pd.DataFrame(portal_rows), use_container_width=True, hide_index=True)
+    st.markdown("### Candidate request")
+    with st.form("candidate_portal_request"):
+        request_type = st.selectbox(
+            "Request type",
+            [
+                "Update contact information",
+                "Interview accommodation",
+                "Withdraw application",
+                "Delete my data",
+                "Other question",
+            ],
+        )
+        request_details = st.text_area("Details")
+        request_submitted = st.form_submit_button("Submit request", type="primary")
+    if request_submitted:
+        add_candidate_request(portal_candidate["id"], request_type, request_details)
+        st.success("Your request was submitted to the recruiting team.")
+    st.caption("This page does not display internal scores, notes, or reviewer discussions.")
+    st.stop()
+
+if AUTH_REQUIRED and not st.session_state.workspace_user:
+    st.markdown("## Hiring workspace sign in")
+    st.caption("Secure access for recruiters and hiring managers.")
+    if user_count() == 0:
+        st.info("Create the first administrator account for this workspace.")
+        with st.form("first_admin_form"):
+            admin_name = st.text_input("Administrator name")
+            admin_email = st.text_input("Administrator email")
+            admin_password = st.text_input("Password", type="password")
+            create_admin = st.form_submit_button("Create administrator")
+        if create_admin:
+            try:
+                create_user(admin_email, admin_name, "admin", admin_password)
+                st.success("Administrator created. Sign in below.")
+                st.rerun()
+            except Exception as exc:
+                st.error(str(exc))
+    else:
+        with st.form("workspace_login_form"):
+            login_email = st.text_input("Email")
+            login_password = st.text_input("Password", type="password")
+            login_clicked = st.form_submit_button("Sign in", type="primary")
+        if login_clicked:
+            user = authenticate_user(login_email, login_password)
+            if user:
+                st.session_state.workspace_user = user
+                st.rerun()
+            else:
+                st.error("Invalid email or password.")
+    st.stop()
 
 
 # ============================================================
@@ -937,25 +1105,35 @@ def candidate_score_row(candidate_name: str, resume_text: str) -> tuple[dict, di
         resume_match_skills,
     )
 
+    technical_context = build_contextual_match_report(
+        jd_technical_skills, clean_resume_text
+    )
+    soft_context = build_contextual_match_report(
+        jd_soft_skills, clean_resume_text
+    )
+
     final_score = round(
-        (0.70 * technical_match["skill_score"])
+        (0.70 * technical_context["score"])
         + (0.20 * technical_match["text_similarity_score"])
-        + (0.10 * soft_match["skill_score"])
+        + (0.10 * soft_context["score"])
     )
 
     matched_skills = normalize_skill_list(
-        technical_match["matched_skills"] + soft_match["matched_skills"]
+        technical_context["matched"] + soft_context["matched"]
     )
     missing_skills = normalize_skill_list(
-        technical_match["missing_skills"] + soft_match["missing_skills"]
+        technical_context["missing"] + soft_context["missing"]
     )
 
     result = {
         "Candidate": candidate_name,
         "Match Score": final_score,
-        "Technical Skill Score": technical_match["skill_score"],
+        "Technical Skill Score": technical_context["score"],
         "Text Similarity": technical_match["text_similarity_score"],
-        "Soft Skill Score": soft_match["skill_score"],
+        "Soft Skill Score": soft_context["score"],
+        "Related Skills": ", ".join(
+            technical_context["partial"] + soft_context["partial"]
+        ),
         "Review Priority": get_review_priority(final_score),
         "Matched Skills": ", ".join(matched_skills),
         "Missing Skills": ", ".join(missing_skills),
@@ -964,7 +1142,22 @@ def candidate_score_row(candidate_name: str, resume_text: str) -> tuple[dict, di
 
     heatmap_row = {"Candidate": candidate_name}
     for skill in jd_all_skills:
-        heatmap_row[skill] = "✓" if skill in resume_match_skills else "—"
+        match_item = next(
+            (
+                item
+                for item in technical_context["matches"] + soft_context["matches"]
+                if item["skill"] == skill
+            ),
+            None,
+        )
+        heatmap_row[skill] = (
+            match_item["status"] if match_item else "Missing evidence"
+        )
+
+    st.session_state.candidate_ats_reports[candidate_name] = {
+        "technical": technical_context,
+        "human": soft_context,
+    }
 
     return result, heatmap_row
 
@@ -976,6 +1169,8 @@ def build_candidate_tables(candidate_documents: list[dict]) -> None:
     resume_texts = {}
     skill_evidence = {}
 
+    prior_candidates = list_persisted_candidates()
+    returning_alerts = []
     for candidate in candidate_documents:
         candidate_name = candidate["Candidate"]
         resume_text = candidate["Resume Text"]
@@ -992,6 +1187,64 @@ def build_candidate_tables(candidate_documents: list[dict]) -> None:
             + st.session_state.jd_soft_skills
         )
         resume_texts[candidate_name] = resume_text
+        profile_links = extract_profile_links(resume_text)
+        if profile_links["github_username"]:
+            try:
+                github_evidence = fetch_public_github_evidence(
+                    profile_links["github_username"]
+                )
+                profile_comparison = compare_resume_with_profiles(
+                    resume_text, github_evidence
+                )
+                st.session_state.profile_verifications[candidate_name] = {
+                    "github_url": profile_links["github_url"],
+                    "linkedin_url": profile_links["linkedin_url"],
+                    "github_evidence": github_evidence,
+                    "github_error": "",
+                    "comparison": profile_comparison,
+                }
+            except ValueError as exc:
+                st.session_state.profile_verifications[candidate_name] = {
+                    "github_url": profile_links["github_url"],
+                    "linkedin_url": profile_links["linkedin_url"],
+                    "github_evidence": None,
+                    "github_error": str(exc),
+                    "comparison": compare_resume_with_profiles(resume_text),
+                }
+
+        try:
+            default_country_code = st.secrets.get("DEFAULT_PHONE_COUNTRY_CODE", "")
+            application_consent = str(
+                st.secrets.get("APPLICATION_SMS_CONSENT_CAPTURED", "false")
+            ).strip().lower() in {"1", "true", "yes", "on"}
+        except Exception:
+            default_country_code = ""
+            application_consent = False
+        detected_phone = extract_phone_number(resume_text, default_country_code)
+        detected_email = extract_email_address(resume_text)
+        prior_matches = [
+            row for row in prior_candidates
+            if row.get("job_id") != st.session_state.active_job_id
+            and (
+                row.get("name", "").strip().lower() == candidate_name.strip().lower()
+                or (detected_email and row.get("email", "").strip().lower() == detected_email.lower())
+            )
+        ]
+        if prior_matches:
+            returning_alerts.append(
+                f"{candidate_name} appears in {len(prior_matches)} earlier application record(s). Review History before deciding."
+            )
+        existing_contact = st.session_state.candidate_contacts.get(candidate_name, {})
+        st.session_state.candidate_contacts[candidate_name] = {
+            "phone": existing_contact.get("phone") or detected_phone,
+            "sms_consent": existing_contact.get("sms_consent", application_consent),
+            "auto_updates": existing_contact.get("auto_updates", True),
+            "consent_source": existing_contact.get(
+                "consent_source",
+                "Application form" if application_consent else "Not recorded",
+            ),
+            "email": existing_contact.get("email") or detected_email,
+        }
         skill_evidence[candidate_name] = build_skill_verification(
             candidate_name,
             resume_text,
@@ -1007,6 +1260,25 @@ def build_candidate_tables(candidate_documents: list[dict]) -> None:
     st.session_state.candidate_resume_texts = resume_texts
     st.session_state.candidate_skill_evidence = skill_evidence
     st.session_state.screening_completed = True
+    st.session_state.returning_candidate_alerts = list(dict.fromkeys(returning_alerts))
+
+    actor = (st.session_state.workspace_user or {}).get("email", "system")
+    for candidate_name, resume_text in resume_texts.items():
+        row = candidate_df[candidate_df["Candidate"] == candidate_name].iloc[0]
+        contact = st.session_state.candidate_contacts.get(candidate_name, {})
+        candidate_id = save_candidate(
+            st.session_state.active_job_id,
+            candidate_name,
+            resume_text,
+            workflow={
+                "ats": row.to_dict(),
+                "milestones": st.session_state.candidate_milestones.get(candidate_name, {}),
+            },
+            phone=contact.get("phone", ""),
+            email=contact.get("email", ""),
+            actor=actor,
+        )
+        st.session_state.candidate_db_ids[candidate_name] = candidate_id
 
 
 def reset_workspace() -> None:
@@ -1029,6 +1301,13 @@ def analyze_job(job_description: str) -> None:
         st.session_state.jd_soft_skills = soft_skills
         st.session_state.category = category
         st.session_state.simulation_task = simulation
+        actor = (st.session_state.workspace_user or {}).get("email", "system")
+        st.session_state.active_job_id = save_job(
+            analysis.get("role_title", "Untitled role"),
+            job_description,
+            analysis,
+            actor,
+        )
 
 
 def load_demo() -> None:
@@ -1126,6 +1405,52 @@ def export_review_data() -> bytes:
     return export_df.to_csv(index=False).encode("utf-8")
 
 
+def send_automatic_decision_update(candidate_name: str, decision: str) -> tuple[bool, str]:
+    contact = st.session_state.candidate_contacts.get(candidate_name, {})
+    if not contact.get("sms_consent") or not contact.get("auto_updates", True):
+        return False, "Automatic SMS is not enabled for this candidate."
+    phone = contact.get("phone", "")
+    if not validate_phone_number(phone):
+        return False, "The extracted phone number needs E.164 confirmation before SMS can be sent."
+
+    decision_copy = {
+        "Move Forward": "Your application is moving forward. The recruiting team will contact you with the next step.",
+        "Needs More Review": "Your application remains under review. We will share another update when the review is complete.",
+        "Hold": "Your application is still active and currently on hold. We will contact you when the status changes.",
+        "Reject": "The team has completed its review and will not be moving forward with your application.",
+    }
+    first_name = candidate_name.strip().split()[0] if candidate_name.strip() else "Candidate"
+    body = f"OfferPilot update for {first_name}: {decision_copy.get(decision, 'Your application status was updated.')}"
+    try:
+        account_sid = st.secrets["TWILIO_ACCOUNT_SID"]
+        auth_token = st.secrets["TWILIO_AUTH_TOKEN"]
+        from_number = st.secrets["TWILIO_FROM_NUMBER"]
+        delivery = send_twilio_sms(
+            account_sid, auth_token, from_number, phone, body
+        )
+    except Exception as exc:
+        return False, str(exc)
+
+    st.session_state.candidate_sms_logs.setdefault(candidate_name, []).append(
+        {
+            "Milestone": "Recruiter decision",
+            "Status": decision,
+            "Message": body,
+            "Delivery": delivery["status"],
+            "Sent at": delivery["sent_at"],
+            "Message SID": delivery["sid"],
+        }
+    )
+    statuses = st.session_state.candidate_milestones.setdefault(
+        candidate_name,
+        {key: "Not started" for key, _ in MILESTONES},
+    )
+    statuses["final_review"] = "Completed"
+    if decision == "Reject":
+        statuses["decision_shared"] = "Completed"
+    return True, "Decision SMS queued by Twilio."
+
+
 def confidence_chip(priority: str) -> tuple[str, str]:
     if "High" in priority:
         return "Strong fit", "chip-high"
@@ -1142,15 +1467,24 @@ def render_candidate_cards(df: pd.DataFrame) -> None:
         matched_count = len(
             [skill for skill in str(row["Matched Skills"]).split(", ") if skill]
         )
+        related_count = len(
+            [skill for skill in str(row.get("Related Skills", "")).split(", ") if skill]
+        )
+        rank_label = (
+            "Only candidate" if len(df) == 1 else f'Rank #{int(row["Rank"])}'
+        )
+        evidence_summary = f"{matched_count} matched competencies"
+        if related_count:
+            evidence_summary += f" · {related_count} related"
 
         with columns[index]:
             st.markdown(
                 f"""
                 <div class="candidate-card">
-                    <div class="candidate-rank">Rank #{int(row["Rank"])}</div>
+                    <div class="candidate-rank">{rank_label}</div>
                     <div class="candidate-name">{row["Candidate"]}</div>
                     <div class="score-large">{int(row["Match Score"])}%</div>
-                    <div class="muted">{matched_count} matched competencies</div>
+                    <div class="muted">{evidence_summary}</div>
                     <span class="status-chip {css_class}">{label}</span>
                 </div>
                 """,
@@ -1158,13 +1492,57 @@ def render_candidate_cards(df: pd.DataFrame) -> None:
             )
 
 
+def load_saved_workspace(saved_job: dict) -> None:
+    """Switch the active recruiter workspace to a persisted role and its candidates."""
+    try:
+        saved_analysis = json.loads(saved_job.get("analysis_json") or "{}")
+    except Exception:
+        saved_analysis = {}
+    st.session_state.active_job_id = saved_job["id"]
+    st.session_state.job_description = saved_job["description"]
+    st.session_state.jd_analysis = saved_analysis
+    st.session_state.jd_role_skills = normalize_skill_list(saved_analysis.get("required_skills", []))
+    st.session_state.jd_soft_skills = normalize_skill_list(saved_analysis.get("soft_skills", []))
+    st.session_state.category = saved_analysis.get("role_category", "General")
+    st.session_state.simulation_task = get_simulation(saved_job["description"], saved_analysis)
+    saved_candidates = list_persisted_candidates(saved_job["id"])
+    if saved_candidates:
+        build_candidate_tables([
+            {"Candidate": row["name"], "Resume Text": row["resume_text"]}
+            for row in saved_candidates
+        ])
+
+
 # ============================================================
 # SIDEBAR
 # ============================================================
 
 with st.sidebar:
-    st.markdown("## ✦ OfferPilot")
-    st.caption("Evidence-led hiring intelligence")
+    st.markdown("## Recruiter workspace")
+    st.caption("Hiring intelligence and candidate operations")
+    current_workspace_user = st.session_state.workspace_user or {}
+    st.caption(
+        f'Signed in as {current_workspace_user.get("name", "Unknown")} · '
+        f'{current_workspace_user.get("role", "unknown").replace("_", " ").title()}'
+    )
+    with st.popover("Open app guide", use_container_width=True):
+        st.markdown(
+            "**1. Role** — add or reopen a job.  \n"
+            "**2. Screen** — upload resumes together.  \n"
+            "**3. Compare** — audit evidence and ranking.  \n"
+            "**4. Validate** — use tailored questions and practical review.  \n"
+            "**5. Decide** — record the human decision and update the candidate."
+        )
+    saved_role_rows = list_jobs()
+    if saved_role_rows:
+        role_options = {f'{row["title"]} · {row["id"]}': row for row in saved_role_rows}
+        selected_role_label = st.selectbox("Active role", list(role_options), key="sidebar_active_role")
+        if st.button("Switch role workspace", use_container_width=True):
+            load_saved_workspace(role_options[selected_role_label])
+            st.rerun()
+    if AUTH_REQUIRED and st.button("Sign out", use_container_width=True):
+        st.session_state.workspace_user = None
+        st.rerun()
 
     progress_steps = [
         ("1", "Role analyzed", bool(st.session_state.job_description)),
@@ -1258,14 +1636,19 @@ st.markdown(
 # MAIN NAVIGATION
 # ============================================================
 
-tab_overview, tab_role, tab_screening, tab_comparison, tab_verification, tab_simulation = st.tabs(
+tab_overview, tab_role, tab_screening, tab_comparison, tab_verification, tab_simulation, tab_interview, tab_updates, tab_history, tab_assistant, tab_operations = st.tabs(
     [
         "Executive Overview",
         "1 · Role Intelligence",
-        "2 · Candidate Screening",
+        "2 · Advanced ATS Check",
         "3 · Evidence Comparison",
         "4 · Skill Verification",
         "5 · Simulation & Decision",
+        "6 · Interview Evidence",
+        "7 · Candidate Updates",
+        "8 · History",
+        "9 · AI Assistant",
+        "10 · Settings",
     ]
 )
 
@@ -1514,11 +1897,19 @@ with tab_role:
 # ============================================================
 
 with tab_screening:
-    st.markdown("## Candidate screening")
+    st.markdown("## Advanced ATS resume check")
     st.caption(
-        "Compare resume evidence using a transparent weighted model: "
-        "70% technical skills, 20% text similarity, and 10% soft skills."
+        "Run an explainable ATS check using exact skills, synonyms, related "
+        "wording, context, negation handling, and whole-document similarity."
     )
+
+    st.info(
+        "Start here after defining the role. Upload one or more resumes, run the "
+        "check, then select a candidate to inspect every matched, partial, and "
+        "missing requirement."
+    )
+    for alert in st.session_state.returning_candidate_alerts:
+        st.warning(alert)
 
     if not st.session_state.job_description:
         st.info("Analyze a role in the Role Intelligence tab before screening resumes.")
@@ -1585,6 +1976,21 @@ with tab_screening:
 
             st.markdown("### Ranked shortlist")
             render_candidate_cards(df)
+            if len(df) > 3:
+                with st.expander(f"Show all {len(df)} ranked candidates"):
+                    st.dataframe(
+                        df[["Rank", "Candidate", "Match Score", "Review Priority"]],
+                        use_container_width=True,
+                        hide_index=True,
+                    )
+
+            with st.expander("How the ATS score is calculated"):
+                st.write(
+                    "The match score combines 70% required technical evidence, 20% whole-resume "
+                    "semantic similarity, and 10% human-skill evidence. Exact terms, accepted "
+                    "synonyms, contextual/related wording, and negation are evaluated separately. "
+                    "The score supports review; it never automatically rejects a candidate."
+                )
 
             threshold = st.slider(
                 "Shortlist threshold",
@@ -1636,7 +2042,8 @@ with tab_screening:
             )
 
             explanation_row = df[df["Candidate"] == selected_explanation].iloc[0]
-            exp_left, exp_right = st.columns(2)
+            with st.expander("View evidence summary", expanded=False):
+                exp_left, exp_middle, exp_right = st.columns(3)
 
             with exp_left:
                 st.markdown("#### Evidence found")
@@ -1651,6 +2058,19 @@ with tab_screening:
                 else:
                     st.info("No direct matched skills were identified.")
 
+            with exp_middle:
+                st.markdown("#### Related evidence")
+                related = [
+                    skill
+                    for skill in explanation_row.get("Related Skills", "").split(", ")
+                    if skill
+                ]
+                if related:
+                    for skill in related:
+                        st.info(f"{skill} — partial credit")
+                else:
+                    st.caption("No partial matches were detected.")
+
             with exp_right:
                 st.markdown("#### Evidence to validate")
                 missing = [
@@ -1663,6 +2083,43 @@ with tab_screening:
                         st.warning(skill)
                 else:
                     st.success("No required skill gaps were identified.")
+
+            ats_report = st.session_state.candidate_ats_reports.get(
+                selected_explanation, {}
+            )
+            report_items = (
+                ats_report.get("technical", {}).get("matches", [])
+                + ats_report.get("human", {}).get("matches", [])
+            )
+            if report_items:
+                st.markdown("#### Contextual ATS evidence report")
+                st.caption(
+                    "Exact terms, accepted synonyms, related wording, and missing "
+                    "evidence are shown separately so a recruiter can audit the score."
+                )
+                st.dataframe(
+                    pd.DataFrame(
+                        [
+                            {
+                                "Requirement": item["skill"],
+                                "Status": item["status"],
+                                "Match basis": item["match_type"],
+                                "Detected term": item["matched_term"],
+                                "Confidence": item["confidence"],
+                                "Resume evidence": item["evidence"],
+                            }
+                            for item in report_items
+                        ]
+                    ),
+                    use_container_width=True,
+                    hide_index=True,
+                    column_config={
+                        "Confidence": st.column_config.ProgressColumn(
+                            min_value=0, max_value=100, format="%d%%"
+                        ),
+                        "Resume evidence": st.column_config.TextColumn(width="large"),
+                    },
+                )
 
 
 # ============================================================
@@ -1677,8 +2134,16 @@ with tab_comparison:
         st.info("Screen candidates first to generate the competency comparison.")
     else:
         heatmap_df = st.session_state.heatmap_df.copy()
+        def evidence_color(value):
+            colors = {
+                "Matched": "background-color: #d1fae5; color: #065f46; font-weight: 700",
+                "Partial": "background-color: #fef3c7; color: #92400e; font-weight: 700",
+                "Missing evidence": "background-color: #ffe4e6; color: #9f1239; font-weight: 700",
+            }
+            return colors.get(value, "")
+
         st.dataframe(
-            heatmap_df,
+            heatmap_df.style.map(evidence_color),
             use_container_width=True,
             hide_index=True,
         )
@@ -1697,7 +2162,11 @@ with tab_comparison:
         )
         insight_cols[1].metric(
             "Score spread",
-            f"{int(top_candidate['Match Score'] - lowest_candidate['Match Score'])} pts",
+            (
+                f"{int(top_candidate['Match Score'] - lowest_candidate['Match Score'])} pts"
+                if len(candidate_df) > 1
+                else "Not applicable"
+            ),
         )
         insight_cols[2].metric(
             "Competencies assessed",
@@ -1732,6 +2201,141 @@ with tab_verification:
         st.info("Screen candidates first to generate skill verification.")
     else:
         candidate_names = st.session_state.candidate_df["Candidate"].tolist()
+
+        st.markdown("### Public profile claim verification")
+        st.caption(
+            "Compare resume claims with candidate-provided public profile evidence. "
+            "Missing public evidence is never treated as proof that a claim is false."
+        )
+        profile_candidate = st.selectbox(
+            "Candidate profile to verify",
+            candidate_names,
+            key="profile_verification_candidate",
+        )
+        profile_resume_text = st.session_state.candidate_resume_texts.get(
+            profile_candidate, ""
+        )
+        detected_links = extract_profile_links(profile_resume_text)
+        github_url = detected_links["github_url"]
+        linkedin_url = detected_links["linkedin_url"]
+        detected_col, linkedin_col = st.columns(2)
+        with detected_col:
+            st.markdown("#### GitHub")
+            if github_url:
+                st.success("GitHub URL extracted from the resume.")
+                st.link_button("Open extracted GitHub profile", github_url)
+            else:
+                st.warning("No GitHub URL was found in this resume.")
+        with linkedin_col:
+            st.markdown("#### LinkedIn")
+            if linkedin_url:
+                st.success("LinkedIn URL extracted from the resume.")
+                st.link_button("Open extracted LinkedIn profile", linkedin_url)
+            else:
+                st.warning("No LinkedIn URL was found in this resume.")
+
+        with st.expander(
+            "Manual correction — only when a PDF link could not be extracted",
+            expanded=False,
+        ):
+            github_url = st.text_input(
+                "Correct GitHub profile URL",
+                value=github_url,
+                key=f"github_url_{profile_candidate}",
+                placeholder="https://github.com/username",
+            )
+            linkedin_url = st.text_input(
+                "Correct LinkedIn profile URL",
+                value=linkedin_url,
+                key=f"linkedin_url_{profile_candidate}",
+                placeholder="https://www.linkedin.com/in/profile",
+            )
+
+        with st.expander("Authorized LinkedIn evidence", expanded=False):
+            st.caption(
+                "Until approved LinkedIn Profile API access is configured, use an "
+                "authorized candidate export for work-history comparison."
+            )
+            linkedin_profile_text = st.text_area(
+                "LinkedIn profile text or export",
+                height=130,
+                key=f"linkedin_text_{profile_candidate}",
+                placeholder="Paste the relevant Experience, Projects, and Skills sections.",
+            )
+
+        if st.button(
+            "Refresh public profile evidence",
+            type="primary",
+            disabled=not github_url and not linkedin_profile_text.strip(),
+            key=f"verify_profiles_{profile_candidate}",
+        ):
+            github_evidence = None
+            github_error = ""
+            github_username = extract_profile_links(github_url)["github_username"]
+            if github_url and not github_username:
+                github_error = "Enter a valid github.com/username profile URL."
+            elif github_username:
+                try:
+                    with st.spinner("Reading public GitHub repository metadata..."):
+                        github_evidence = fetch_public_github_evidence(github_username)
+                except ValueError as exc:
+                    github_error = str(exc)
+
+            comparison = compare_resume_with_profiles(
+                profile_resume_text,
+                github_evidence,
+                linkedin_profile_text,
+            )
+            st.session_state.profile_verifications[profile_candidate] = {
+                "github_url": github_url,
+                "linkedin_url": linkedin_url,
+                "github_evidence": github_evidence,
+                "github_error": github_error,
+                "comparison": comparison,
+            }
+
+        profile_result = st.session_state.profile_verifications.get(
+            profile_candidate
+        )
+        if profile_result:
+            if profile_result["github_error"]:
+                st.warning(profile_result["github_error"])
+            github_evidence = profile_result["github_evidence"]
+            comparison = profile_result["comparison"]
+
+            if github_evidence:
+                github_metrics = st.columns(3)
+                github_metrics[0].metric(
+                    "Public repositories", github_evidence["public_repo_count"]
+                )
+                github_metrics[1].metric(
+                    "Resume/GitHub overlap", f'{comparison["github_overlap"]}%'
+                )
+                github_metrics[2].metric(
+                    "Shared evidence terms",
+                    len(comparison["github_shared_terms"]),
+                )
+                repo_rows = github_evidence["repos"][:20]
+                if repo_rows:
+                    st.dataframe(
+                        pd.DataFrame(repo_rows),
+                        use_container_width=True,
+                        hide_index=True,
+                        column_config={
+                            "url": st.column_config.LinkColumn("Repository"),
+                        },
+                    )
+
+            if linkedin_profile_text:
+                st.metric(
+                    "Resume/LinkedIn text overlap",
+                    f'{comparison["linkedin_overlap"]}%',
+                )
+            for signal in comparison["review_signals"]:
+                st.info(signal)
+            st.caption(comparison["limitations"])
+
+        st.divider()
 
         st.markdown("### Candidate evidence summary")
 
@@ -2065,7 +2669,7 @@ with tab_simulation:
             rubric = st.session_state.candidate_rubric_scores[selected_candidate]
             card = st.session_state.candidate_signal_cards[selected_candidate]
 
-            metric_cols = st.columns(4)
+            metric_cols = st.columns([1, 1, 1, 1, 1.4])
             metric_cols[0].metric(
                 "Resume match",
                 f"{int(selected_row['Match Score'])}%",
@@ -2082,6 +2686,11 @@ with tab_simulation:
                 "Confidence",
                 card.get("Final Confidence", ""),
             )
+            with metric_cols[4]:
+                st.info(
+                    "Scoring context\n\nResume evidence: 60%\n\nPractical response: 40%\n\n"
+                    "Each response rubric has five 20-point dimensions. Scores inform human review only."
+                )
 
             st.markdown(
                 f"""
@@ -2168,6 +2777,18 @@ with tab_simulation:
                 placeholder="Record the evidence behind the decision...",
             )
 
+        if st.button("Generate profile-specific interview questions", use_container_width=True):
+            st.session_state.follow_up_questions[selected_candidate] = (
+                generate_candidate_questions_with_llm(
+                    st.session_state.job_description,
+                    st.session_state.jd_analysis,
+                    selected_candidate,
+                    st.session_state.candidate_resume_texts.get(selected_candidate, ""),
+                    st.session_state.candidate_skill_evidence.get(selected_candidate, []),
+                )
+            )
+            st.rerun()
+
         follow_up_questions = st.text_area(
             "Structured interview questions",
             value=st.session_state.follow_up_questions.get(selected_candidate, ""),
@@ -2177,6 +2798,9 @@ with tab_simulation:
         )
 
         if st.button("Save recruiter decision"):
+            previous_decision = st.session_state.recruiter_decisions.get(
+                selected_candidate
+            )
             st.session_state.recruiter_decisions[
                 selected_candidate
             ] = recruiter_decision
@@ -2184,7 +2808,46 @@ with tab_simulation:
             st.session_state.follow_up_questions[
                 selected_candidate
             ] = follow_up_questions
-            st.success("Recruiter decision saved.")
+            selected_resume_text = st.session_state.candidate_resume_texts.get(
+                selected_candidate, ""
+            )
+            selected_contact = st.session_state.candidate_contacts.get(
+                selected_candidate, {}
+            )
+            persisted_candidate_id = save_candidate(
+                st.session_state.active_job_id,
+                selected_candidate,
+                selected_resume_text,
+                workflow={
+                    "decision": recruiter_decision,
+                    "notes": recruiter_notes,
+                    "follow_up_questions": follow_up_questions,
+                    "rubric": st.session_state.candidate_rubric_scores.get(
+                        selected_candidate, {}
+                    ),
+                    "signal_card": st.session_state.candidate_signal_cards.get(
+                        selected_candidate, {}
+                    ),
+                    "milestones": st.session_state.candidate_milestones.get(
+                        selected_candidate, {}
+                    ),
+                },
+                phone=selected_contact.get("phone", ""),
+                email=selected_contact.get("email", ""),
+                actor=(st.session_state.workspace_user or {}).get("email", "system"),
+            )
+            st.session_state.candidate_db_ids[selected_candidate] = persisted_candidate_id
+            if previous_decision != recruiter_decision:
+                sent, update_message = send_automatic_decision_update(
+                    selected_candidate, recruiter_decision
+                )
+                if sent:
+                    st.success(f"Recruiter decision saved. {update_message}")
+                else:
+                    st.success("Recruiter decision saved.")
+                    st.info(update_message)
+            else:
+                st.success("Recruiter decision saved. The status did not change, so no SMS was sent.")
 
         if st.session_state.candidate_signal_cards:
             st.markdown("### Review summary")
@@ -2232,12 +2895,802 @@ with tab_simulation:
             )
 
 
-st.markdown(
-    """
-    <div class="footer">
-        OfferPilot · Built by Nishita Reddy Yaduguri · Applied AI for transparent,
-        human-centered hiring workflows
-    </div>
-    """,
-    unsafe_allow_html=True,
-)   
+with tab_interview:
+    st.markdown("## Interview evidence workspace")
+    st.caption(
+        "Capture a consented interview transcript, review answer evidence, and "
+        "generate structured follow-ups. This workspace does not infer deception, "
+        "emotion, personality, or AI use."
+    )
+
+    if st.session_state.candidate_df.empty:
+        st.info("Screen candidates before creating an interview evidence record.")
+    else:
+        interview_candidates = st.session_state.candidate_df["Candidate"].tolist()
+        interview_candidate = st.selectbox(
+            "Candidate",
+            interview_candidates,
+            key="interview_candidate",
+        )
+
+        st.markdown("### Recording and privacy consent")
+        consent = st.checkbox(
+            "The candidate has been informed and explicitly consented to recording and transcription.",
+            value=st.session_state.interview_consent.get(interview_candidate, False),
+            key=f"consent_{interview_candidate}",
+        )
+        st.session_state.interview_consent[interview_candidate] = consent
+        st.caption(
+            "Audio is processed only after consent. OfferPilot stores the transcript "
+            "in the current app session; configure approved retention and deletion "
+            "controls before production use."
+        )
+
+        capture_col, upload_col = st.columns(2)
+        with capture_col:
+            recorded_audio = st.audio_input(
+                "Record interview audio",
+                disabled=not consent,
+                key=f"recorded_audio_{interview_candidate}",
+            )
+        with upload_col:
+            uploaded_audio = st.file_uploader(
+                "Or upload a recorded interview",
+                type=["wav", "mp3", "m4a", "mp4", "webm", "ogg"],
+                disabled=not consent,
+                key=f"uploaded_audio_{interview_candidate}",
+            )
+
+        audio_source = recorded_audio or uploaded_audio
+        if st.button(
+            "Transcribe consented audio",
+            type="primary",
+            disabled=not consent or audio_source is None,
+            key=f"transcribe_{interview_candidate}",
+        ):
+            if not is_llm_available():
+                st.warning(
+                    "Audio transcription requires a configured GROQ_API_KEY. "
+                    "You can paste or edit the transcript below instead."
+                )
+            else:
+                try:
+                    with st.spinner("Transcribing interview audio..."):
+                        transcript = transcribe_audio(
+                            audio_source.getvalue(),
+                            getattr(audio_source, "name", "interview.wav"),
+                        )
+                    st.session_state.interview_transcripts[interview_candidate] = (
+                        transcript or ""
+                    )
+                    st.success("Transcript created. Review and correct it before analysis.")
+                    st.rerun()
+                except Exception as exc:
+                    st.error(f"Transcription failed: {exc}")
+
+        transcript_text = st.text_area(
+            "Reviewed interview transcript",
+            value=st.session_state.interview_transcripts.get(interview_candidate, ""),
+            height=300,
+            key=f"transcript_editor_{interview_candidate}",
+            placeholder=(
+                "Paste the phone/video interview transcript here, or record/upload "
+                "audio above. Remove unrelated sensitive personal information."
+            ),
+        )
+
+        analyze_col, clear_col = st.columns([1, 1])
+        with analyze_col:
+            analyze_clicked = st.button(
+                "Analyze answer evidence",
+                type="primary",
+                disabled=not transcript_text.strip(),
+                key=f"analyze_interview_{interview_candidate}",
+            )
+        with clear_col:
+            if st.button(
+                "Delete session transcript",
+                disabled=not transcript_text.strip(),
+                key=f"clear_interview_{interview_candidate}",
+            ):
+                st.session_state.interview_transcripts.pop(interview_candidate, None)
+                st.session_state.interview_analyses.pop(interview_candidate, None)
+                st.rerun()
+
+        if analyze_clicked:
+            st.session_state.interview_transcripts[interview_candidate] = transcript_text
+            st.session_state.interview_analyses[interview_candidate] = (
+                analyze_interview_transcript(
+                    transcript_text,
+                    st.session_state.candidate_resume_texts.get(interview_candidate, ""),
+                    normalize_skill_list(
+                        st.session_state.jd_role_skills
+                        + st.session_state.jd_soft_skills
+                    ),
+                )
+            )
+            st.success("Interview evidence review created.")
+
+        interview_analysis = st.session_state.interview_analyses.get(
+            interview_candidate
+        )
+        if interview_analysis:
+            st.markdown("### Objective answer signals")
+            metrics = st.columns(4)
+            metrics[0].metric("Transcript words", interview_analysis["word_count"])
+            metrics[1].metric(
+                "Concrete evidence", f'{interview_analysis["evidence_score"]}%'
+            )
+            metrics[2].metric(
+                "Answer specificity", f'{interview_analysis["specificity_score"]}%'
+            )
+            metrics[3].metric(
+                "Resume topic overlap", f'{interview_analysis["resume_similarity"]}%'
+            )
+            st.caption(
+                "These are content-review aids, not candidate quality, honesty, "
+                "personality, or employment-decision scores."
+            )
+
+            if interview_analysis["supported_skills"]:
+                st.markdown("#### Role topics discussed")
+                st.write(", ".join(interview_analysis["supported_skills"]))
+
+            st.markdown("#### Items requiring verification")
+            if interview_analysis["review_flags"]:
+                for flag in interview_analysis["review_flags"]:
+                    st.warning(flag)
+            else:
+                st.success("The transcript contains multiple concrete evidence signals.")
+
+            st.markdown("#### Adaptive follow-up questions")
+            for number, question in enumerate(
+                interview_analysis["follow_ups"], start=1
+            ):
+                st.info(f"{number}. {question}")
+
+            st.download_button(
+                "Download reviewed transcript",
+                data=st.session_state.interview_transcripts.get(interview_candidate, ""),
+                file_name=f"{interview_candidate}_reviewed_transcript.txt",
+                mime="text/plain",
+                key=f"download_transcript_{interview_candidate}",
+            )
+
+
+with tab_updates:
+    st.markdown("## Candidate milestone updates")
+    st.caption(
+        "Give candidates a clear view of their application progress and send "
+        "consented status updates by SMS. Milestone messages are previewed; changed "
+        "recruiter decisions can be sent automatically after opt-in."
+    )
+
+    if st.session_state.candidate_df.empty:
+        st.info("Screen candidates before creating milestone updates.")
+    else:
+        update_candidates = st.session_state.candidate_df["Candidate"].tolist()
+        update_candidate = st.selectbox(
+            "Candidate",
+            update_candidates,
+            key="candidate_update_candidate",
+        )
+        contact = st.session_state.candidate_contacts.get(
+            update_candidate,
+            {
+                "phone": "",
+                "sms_consent": False,
+                "auto_updates": True,
+                "consent_source": "Not recorded",
+            },
+        )
+        st.markdown("### Hiring workflow")
+        workflow_stages = [
+            ("Application", lambda n: True),
+            ("Screened", lambda n: n in st.session_state.candidate_resume_texts),
+            ("Practical review", lambda n: n in st.session_state.candidate_rubric_scores),
+            ("Decision recorded", lambda n: n in st.session_state.recruiter_decisions),
+        ]
+        total_candidates = max(len(df), 1)
+        for stage_name, stage_filter in workflow_stages:
+            stage_names = [name for name in df["Candidate"].tolist() if stage_filter(name)]
+            with st.expander(f"{stage_name} · {len(stage_names)}/{total_candidates} ({round(100 * len(stage_names) / total_candidates)}%)"):
+                if stage_names:
+                    stage_rows = df[df["Candidate"].isin(stage_names)][["Rank", "Candidate", "Match Score"]]
+                    st.dataframe(stage_rows, use_container_width=True, hide_index=True)
+                else:
+                    st.caption("No candidates are at this step yet.")
+        st.caption(
+            "Diversity ratios are shown only when HR supplies an approved, consented audit dataset. "
+            "The app never infers demographic attributes from names or resumes."
+        )
+        phone_col, consent_col = st.columns([1, 1.4])
+        with phone_col:
+            phone_number = st.text_input(
+                "Candidate phone number",
+                value=contact.get("phone", ""),
+                placeholder="+15551234567",
+                key=f"candidate_phone_{update_candidate}",
+                help="Use international E.164 format.",
+            )
+        with consent_col:
+            sms_consent = st.checkbox(
+                "Candidate has opted in to application-status SMS updates.",
+                value=contact.get("sms_consent", False),
+                key=f"sms_consent_{update_candidate}",
+            )
+            st.caption(f'Consent source: {contact.get("consent_source", "Not recorded")}')
+            auto_updates = st.checkbox(
+                "Automatically send an SMS when the saved recruiter decision changes.",
+                value=contact.get("auto_updates", True),
+                disabled=not sms_consent,
+                key=f"auto_updates_{update_candidate}",
+            )
+        st.session_state.candidate_contacts[update_candidate] = {
+            "phone": phone_number.strip(),
+            "email": contact.get("email", ""),
+            "sms_consent": sms_consent,
+            "auto_updates": auto_updates,
+            "consent_source": (
+                contact.get("consent_source", "Not recorded")
+                if sms_consent == contact.get("sms_consent", False)
+                else "Recruiter confirmation in OfferPilot"
+            ),
+        }
+
+        default_statuses = {
+            key: (
+                "Completed"
+                if key in {"application_received", "resume_review"}
+                else "Not started"
+            )
+            for key, _ in MILESTONES
+        }
+        statuses = st.session_state.candidate_milestones.setdefault(
+            update_candidate, default_statuses
+        )
+
+        st.markdown("### Candidate-facing progress")
+        progress = milestone_progress(statuses)
+        st.progress(progress, text=f"Application progress · {round(progress * 100)}%")
+
+        milestone_rows = []
+        for position, (milestone_key, milestone_label) in enumerate(MILESTONES, start=1):
+            current_status = statuses.get(milestone_key, "Not started")
+            marker = {
+                "Completed": "✓",
+                "In progress": "●",
+                "Not started": "○",
+            }[current_status]
+            milestone_rows.append(
+                {
+                    "Step": position,
+                    "Milestone": f"{marker} {milestone_label}",
+                    "Status": current_status,
+                }
+            )
+        st.dataframe(
+            pd.DataFrame(milestone_rows),
+            use_container_width=True,
+            hide_index=True,
+        )
+
+        st.markdown("### Update a milestone")
+        selected_milestone_label = st.selectbox(
+            "Milestone",
+            [label for _, label in MILESTONES],
+            key=f"update_milestone_{update_candidate}",
+        )
+        selected_milestone_key = next(
+            key for key, label in MILESTONES if label == selected_milestone_label
+        )
+        selected_status = st.selectbox(
+            "New status",
+            STATUS_OPTIONS,
+            index=STATUS_OPTIONS.index(
+                statuses.get(selected_milestone_key, "Not started")
+            ),
+            key=f"update_status_{update_candidate}",
+        )
+        next_step = st.text_input(
+            "Candidate-facing next step",
+            key=f"candidate_next_step_{update_candidate}",
+            placeholder="Example: We will contact you within three business days.",
+        )
+        default_message = build_status_message(
+            update_candidate,
+            selected_milestone_label,
+            selected_status,
+            next_step,
+        )
+        message_body = st.text_area(
+            "SMS preview",
+            value=default_message,
+            height=120,
+            key=f"sms_preview_{update_candidate}_{selected_milestone_key}_{selected_status}",
+            help="Keep messages factual and do not include private evaluation details.",
+        )
+
+        save_col, send_col = st.columns(2)
+        with save_col:
+            if st.button(
+                "Save milestone without SMS",
+                use_container_width=True,
+                key=f"save_milestone_{update_candidate}",
+            ):
+                statuses[selected_milestone_key] = selected_status
+                st.success("Milestone saved. No message was sent.")
+                st.rerun()
+
+        with send_col:
+            send_clicked = st.button(
+                "Save milestone and send SMS",
+                type="primary",
+                use_container_width=True,
+                disabled=not sms_consent or not validate_phone_number(phone_number),
+                key=f"send_milestone_{update_candidate}",
+            )
+
+        if phone_number and not validate_phone_number(phone_number):
+            st.warning("Enter the phone number in E.164 format, such as +15551234567.")
+        if not sms_consent:
+            st.caption("SMS sending remains disabled until candidate opt-in is recorded.")
+
+        if send_clicked:
+            try:
+                account_sid = st.secrets["TWILIO_ACCOUNT_SID"]
+                auth_token = st.secrets["TWILIO_AUTH_TOKEN"]
+                from_number = st.secrets["TWILIO_FROM_NUMBER"]
+            except Exception:
+                account_sid = auth_token = from_number = ""
+
+            if not all([account_sid, auth_token, from_number]):
+                st.error(
+                    "Twilio is not configured. Add TWILIO_ACCOUNT_SID, "
+                    "TWILIO_AUTH_TOKEN, and TWILIO_FROM_NUMBER to Streamlit secrets."
+                )
+            else:
+                try:
+                    with st.spinner("Sending candidate update..."):
+                        delivery = send_twilio_sms(
+                            account_sid,
+                            auth_token,
+                            from_number,
+                            phone_number,
+                            message_body,
+                        )
+                    statuses[selected_milestone_key] = selected_status
+                    st.session_state.candidate_sms_logs.setdefault(
+                        update_candidate, []
+                    ).append(
+                        {
+                            "Milestone": selected_milestone_label,
+                            "Status": selected_status,
+                            "Message": message_body,
+                            "Delivery": delivery["status"],
+                            "Sent at": delivery["sent_at"],
+                            "Message SID": delivery["sid"],
+                        }
+                    )
+                    st.success("Milestone saved and SMS queued by Twilio.")
+                    st.rerun()
+                except ValueError as exc:
+                    st.error(str(exc))
+
+        sms_logs = st.session_state.candidate_sms_logs.get(update_candidate, [])
+        if sms_logs:
+            st.markdown("### Update history")
+            st.dataframe(
+                pd.DataFrame(sms_logs),
+                use_container_width=True,
+                hide_index=True,
+                column_config={"Message": st.column_config.TextColumn(width="large")},
+            )
+
+
+with tab_history:
+    st.markdown("## Application and change history")
+    st.caption("Reopen earlier profiles, spot repeat applicants, and review who changed what.")
+    history_candidates = list_persisted_candidates()
+    history_jobs = {row["id"]: row for row in list_jobs()}
+    if history_candidates:
+        history_labels = {
+            f'{row["name"]} · {history_jobs.get(row["job_id"], {}).get("title", "Unassigned role")} · {row["updated_at"][:10]}': row
+            for row in history_candidates
+        }
+        history_choice = st.selectbox("Candidate application", list(history_labels))
+        history_row = history_labels[history_choice]
+        prior_for_person = [
+            row for row in history_candidates
+            if row["name"].strip().lower() == history_row["name"].strip().lower()
+            or (history_row.get("email") and row.get("email") == history_row.get("email"))
+        ]
+        if len(prior_for_person) > 1:
+            st.warning(f"Returning applicant: {len(prior_for_person)} application records found.")
+        st.dataframe(
+            pd.DataFrame([{
+                "Role": history_jobs.get(row["job_id"], {}).get("title", "Unassigned"),
+                "Candidate": row["name"], "Email": row["email"], "Updated": row["updated_at"]
+            } for row in prior_for_person]),
+            use_container_width=True, hide_index=True,
+        )
+        with st.expander("View saved application details"):
+            try:
+                saved_history_workflow = json.loads(history_row.get("workflow_json") or "{}")
+            except Exception:
+                saved_history_workflow = {}
+            st.json(saved_history_workflow)
+    else:
+        st.info("History appears after a role or candidate is saved.")
+    history_events = list_audit_events(100)
+    if history_events:
+        st.markdown("### Recent changes")
+        st.dataframe(
+            pd.DataFrame(history_events)[["created_at", "actor", "action", "entity_type", "entity_id"]],
+            use_container_width=True, hide_index=True,
+        )
+
+
+with tab_assistant:
+    st.markdown("## Recruiter AI assistant")
+    st.caption("Ask about the active role, candidates, evidence, workflow, or next review steps.")
+    if not is_llm_available():
+        st.info("Connect a Groq API key in Settings to use the conversational assistant. It does not use scripted replies.")
+    for message in st.session_state.assistant_messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+    assistant_prompt = st.chat_input("Ask a question about this hiring workspace", disabled=not is_llm_available())
+    if assistant_prompt:
+        st.session_state.assistant_messages.append({"role": "user", "content": assistant_prompt})
+        candidate_context = st.session_state.candidate_df.to_dict(orient="records") if not st.session_state.candidate_df.empty else []
+        assistant_context = f"""
+You are a conversational hiring decision-support assistant. Answer the recruiter's question
+using semantic context and careful judgment, not acronym or keyword rules. Cite the supplied
+candidate evidence in plain language. Never make an autonomous hiring decision, infer protected
+attributes, or treat missing resume evidence as proof of missing ability. Flag uncertainty.
+Active role analysis: {json.dumps(st.session_state.jd_analysis, default=str)[:7000]}
+Candidate rankings: {json.dumps(candidate_context, default=str)[:9000]}
+Recruiter question: {assistant_prompt}
+"""
+        try:
+            assistant_answer = ask_llm(assistant_context, temperature=0.25)
+        except Exception as exc:
+            assistant_answer = f"The assistant could not complete that request: {exc}"
+        st.session_state.assistant_messages.append({"role": "assistant", "content": assistant_answer})
+        st.rerun()
+
+
+with tab_operations:
+    st.markdown("## Platform operations")
+    st.caption(
+        "Persistent records, workspace access, candidate portal links, audit history, "
+        "ATS evaluation, scheduling, and email."
+    )
+    ops_user = st.session_state.workspace_user or {}
+    ops_tabs = st.tabs(
+        ["Records", "Users", "Candidate portal", "Audit", "ATS evaluation", "Scheduling"]
+    )
+
+    with ops_tabs[0]:
+        persisted_jobs = list_jobs()
+        persisted_candidates = list_persisted_candidates()
+        st.metric("Persistent jobs", len(persisted_jobs))
+        st.metric("Persistent candidate records", len(persisted_candidates))
+        if persisted_jobs:
+            job_labels = {
+                f'{row["title"]} · job {row["id"]}': row for row in persisted_jobs
+            }
+            load_job_choice = st.selectbox(
+                "Saved workspace",
+                list(job_labels),
+                key="saved_workspace_job",
+            )
+            if st.button("Load saved workspace"):
+                saved_job = job_labels[load_job_choice]
+                try:
+                    saved_analysis = json.loads(saved_job["analysis_json"] or "{}")
+                except Exception:
+                    saved_analysis = {}
+                st.session_state.active_job_id = saved_job["id"]
+                st.session_state.job_description = saved_job["description"]
+                st.session_state.jd_analysis = saved_analysis
+                st.session_state.jd_role_skills = normalize_skill_list(
+                    saved_analysis.get("required_skills", [])
+                )
+                st.session_state.jd_soft_skills = normalize_skill_list(
+                    saved_analysis.get("soft_skills", [])
+                )
+                st.session_state.category = saved_analysis.get(
+                    "role_category", "General"
+                )
+                st.session_state.simulation_task = get_simulation(
+                    saved_job["description"], saved_analysis
+                )
+                saved_candidates = list_persisted_candidates(saved_job["id"])
+                if saved_candidates:
+                    build_candidate_tables(
+                        [
+                            {"Candidate": row["name"], "Resume Text": row["resume_text"]}
+                            for row in saved_candidates
+                        ]
+                    )
+                    for row in saved_candidates:
+                        try:
+                            saved_workflow = json.loads(row["workflow_json"] or "{}")
+                        except Exception:
+                            saved_workflow = {}
+                        candidate_name = row["name"]
+                        if saved_workflow.get("decision"):
+                            st.session_state.recruiter_decisions[candidate_name] = saved_workflow["decision"]
+                        if saved_workflow.get("notes"):
+                            st.session_state.recruiter_notes[candidate_name] = saved_workflow["notes"]
+                        if saved_workflow.get("rubric"):
+                            st.session_state.candidate_rubric_scores[candidate_name] = saved_workflow["rubric"]
+                        if saved_workflow.get("signal_card"):
+                            st.session_state.candidate_signal_cards[candidate_name] = saved_workflow["signal_card"]
+                        if saved_workflow.get("milestones"):
+                            st.session_state.candidate_milestones[candidate_name] = saved_workflow["milestones"]
+                st.success("Saved workspace loaded.")
+                st.rerun()
+        if persisted_candidates:
+            st.dataframe(
+                pd.DataFrame(
+                    [
+                        {
+                            "ID": row["id"],
+                            "Job ID": row["job_id"],
+                            "Candidate": row["name"],
+                            "Email": row["email"],
+                            "Phone": row["phone"],
+                            "Updated": row["updated_at"],
+                        }
+                        for row in persisted_candidates
+                    ]
+                ),
+                use_container_width=True,
+                hide_index=True,
+            )
+        else:
+            st.info("Analyze a role and screen candidates to create persistent records.")
+
+    with ops_tabs[1]:
+        if ops_user.get("role") != "admin":
+            st.warning("Only administrators can manage workspace users.")
+        else:
+            users = list_users()
+            if users:
+                st.dataframe(pd.DataFrame(users), use_container_width=True, hide_index=True)
+            with st.form("create_workspace_user"):
+                new_user_name = st.text_input("Name")
+                new_user_email = st.text_input("Email")
+                new_user_role = st.selectbox(
+                    "Role", ["recruiter", "hiring_manager", "admin"]
+                )
+                new_user_password = st.text_input("Temporary password", type="password")
+                create_user_clicked = st.form_submit_button("Create user")
+            if create_user_clicked:
+                try:
+                    create_user(
+                        new_user_email,
+                        new_user_name,
+                        new_user_role,
+                        new_user_password,
+                    )
+                    st.success("Workspace user created.")
+                    st.rerun()
+                except Exception as exc:
+                    st.error(str(exc))
+
+    with ops_tabs[2]:
+        portal_candidates = list_persisted_candidates()
+        if not portal_candidates:
+            st.info("No persistent candidates are available yet.")
+        else:
+            portal_labels = {
+                f'{row["name"]} · record {row["id"]}': row for row in portal_candidates
+            }
+            portal_choice = st.selectbox(
+                "Candidate",
+                list(portal_labels),
+                key="portal_candidate_record",
+            )
+            if st.button("Generate secure candidate portal link"):
+                token = create_portal_token(portal_labels[portal_choice]["id"])
+                st.session_state["last_portal_link"] = f"?portal_token={token}"
+            if st.session_state.get("last_portal_link"):
+                st.code(st.session_state["last_portal_link"])
+                st.caption(
+                    "Add this query string to the deployed OfferPilot URL. Treat it "
+                    "as a password and send it only to the selected candidate."
+                )
+        requests = list_candidate_requests()
+        if requests:
+            st.markdown("### Candidate requests")
+            st.dataframe(pd.DataFrame(requests), use_container_width=True, hide_index=True)
+
+    with ops_tabs[3]:
+        events = list_audit_events()
+        if events:
+            audit_df = pd.DataFrame(events)
+            st.dataframe(
+                audit_df[["created_at", "actor", "action", "entity_type", "entity_id"]],
+                use_container_width=True,
+                hide_index=True,
+            )
+            with st.expander("Inspect raw audit details"):
+                st.dataframe(audit_df, use_container_width=True, hide_index=True)
+        else:
+            st.info("Audit events appear after persistent workflow actions.")
+
+    with ops_tabs[4]:
+        st.write(
+            "Upload a validation CSV with `expected_label` (0 or 1), "
+            "`predicted_score` (0–100), and optional `audit_group`."
+        )
+        benchmark_file = st.file_uploader(
+            "ATS validation dataset",
+            type=["csv"],
+            key="ats_benchmark_file",
+        )
+        benchmark_threshold = st.slider(
+            "Evaluation threshold", 0, 100, 60, key="benchmark_threshold"
+        )
+        if benchmark_file is not None:
+            benchmark_df = pd.read_csv(benchmark_file)
+            required_columns = {"expected_label", "predicted_score"}
+            if not required_columns.issubset(benchmark_df.columns):
+                st.error("The CSV must contain expected_label and predicted_score.")
+            else:
+                expected = benchmark_df["expected_label"].astype(int)
+                predicted = (
+                    benchmark_df["predicted_score"].astype(float)
+                    >= benchmark_threshold
+                ).astype(int)
+                tp = int(((expected == 1) & (predicted == 1)).sum())
+                fp = int(((expected == 0) & (predicted == 1)).sum())
+                fn = int(((expected == 1) & (predicted == 0)).sum())
+                tn = int(((expected == 0) & (predicted == 0)).sum())
+                metrics = {
+                    "threshold": benchmark_threshold,
+                    "rows": len(benchmark_df),
+                    "precision": round(tp / max(tp + fp, 1), 3),
+                    "recall": round(tp / max(tp + fn, 1), 3),
+                    "accuracy": round((tp + tn) / max(len(benchmark_df), 1), 3),
+                    "false_positive_rate": round(fp / max(fp + tn, 1), 3),
+                    "false_negative_rate": round(fn / max(fn + tp, 1), 3),
+                }
+                metric_cols = st.columns(4)
+                metric_cols[0].metric("Precision", metrics["precision"])
+                metric_cols[1].metric("Recall", metrics["recall"])
+                metric_cols[2].metric("False-positive rate", metrics["false_positive_rate"])
+                metric_cols[3].metric("False-negative rate", metrics["false_negative_rate"])
+                benchmark_df["predicted_label"] = predicted
+                if "audit_group" in benchmark_df.columns:
+                    group_rates = (
+                        benchmark_df.groupby("audit_group", dropna=False)["predicted_label"]
+                        .agg(["count", "mean"])
+                        .reset_index()
+                        .rename(columns={"mean": "selection_rate"})
+                    )
+                    st.markdown("### Aggregate selection-rate monitoring")
+                    st.dataframe(group_rates, use_container_width=True, hide_index=True)
+                if st.button("Save benchmark run"):
+                    save_benchmark(
+                        f"ATS validation · {datetime.now().strftime('%Y-%m-%d %H:%M')}",
+                        metrics,
+                        benchmark_df.to_dict(orient="records"),
+                        ops_user.get("email", "system"),
+                    )
+                    st.success("Benchmark run saved with an audit event.")
+        saved_benchmarks = list_benchmarks()
+        if saved_benchmarks:
+            st.markdown("### Saved benchmark runs")
+            st.dataframe(
+                pd.DataFrame(
+                    [
+                        {
+                            "ID": row["id"],
+                            "Name": row["name"],
+                            "Created by": row["created_by"],
+                            "Created": row["created_at"],
+                            "Metrics": row["metrics_json"],
+                        }
+                        for row in saved_benchmarks
+                    ]
+                ),
+                use_container_width=True,
+                hide_index=True,
+            )
+
+    with ops_tabs[5]:
+        schedule_candidates = list_persisted_candidates()
+        created_ics = None
+        if not schedule_candidates:
+            st.info("No persistent candidates are available for scheduling.")
+        else:
+            schedule_labels = {
+                f'{row["name"]} · {row["email"] or "email missing"}': row
+                for row in schedule_candidates
+            }
+            with st.form("schedule_interview_form"):
+                schedule_choice = st.selectbox("Candidate", list(schedule_labels))
+                schedule_date = st.date_input("Interview date")
+                schedule_time = st.time_input("Interview time")
+                schedule_timezone = st.text_input("Timezone", value="America/Chicago")
+                schedule_duration = st.number_input(
+                    "Duration in minutes", min_value=15, max_value=240, value=45, step=15
+                )
+                schedule_meeting_url = st.text_input("Meeting URL")
+                schedule_notes = st.text_area("Candidate-facing notes")
+                send_email_invite = st.checkbox("Send schedule email after saving")
+                schedule_clicked = st.form_submit_button("Schedule interview", type="primary")
+            if schedule_clicked:
+                schedule_candidate = schedule_labels[schedule_choice]
+                starts_at = datetime.combine(schedule_date, schedule_time).isoformat()
+                save_interview(
+                    schedule_candidate["id"],
+                    starts_at,
+                    int(schedule_duration),
+                    schedule_timezone,
+                    schedule_meeting_url,
+                    schedule_notes,
+                    ops_user.get("email", "system"),
+                )
+                end_time = datetime.combine(schedule_date, schedule_time) + pd.Timedelta(minutes=int(schedule_duration))
+                created_ics = (
+                    "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//OfferPilot//Interview//EN\r\n"
+                    "BEGIN:VEVENT\r\n"
+                    f"DTSTART:{datetime.combine(schedule_date, schedule_time).strftime('%Y%m%dT%H%M%S')}\r\n"
+                    f"DTEND:{end_time.strftime('%Y%m%dT%H%M%S')}\r\n"
+                    f"SUMMARY:Interview with {schedule_candidate['name']}\r\n"
+                    f"LOCATION:{schedule_meeting_url}\r\nDESCRIPTION:{schedule_notes}\r\n"
+                    "END:VEVENT\r\nEND:VCALENDAR\r\n"
+                )
+                st.session_state["last_interview_ics"] = created_ics
+                if send_email_invite:
+                    if not schedule_candidate["email"]:
+                        st.warning("Interview saved, but the candidate email is missing.")
+                    else:
+                        try:
+                            smtp_config = {
+                                "host": st.secrets["SMTP_HOST"],
+                                "port": st.secrets.get("SMTP_PORT", 587),
+                                "username": st.secrets["SMTP_USERNAME"],
+                                "password": st.secrets["SMTP_PASSWORD"],
+                                "from_email": st.secrets["SMTP_FROM_EMAIL"],
+                                "ssl": str(st.secrets.get("SMTP_SSL", "false")).lower() == "true",
+                            }
+                            email_body = (
+                                f"Hello {schedule_candidate['name']},\n\nYour interview is scheduled for "
+                                f"{starts_at} ({schedule_timezone}).\nMeeting: {schedule_meeting_url}\n\n"
+                                f"{schedule_notes}"
+                            )
+                            delivery = send_smtp_email(
+                                smtp_config,
+                                schedule_candidate["email"],
+                                "Your OfferPilot interview schedule",
+                                email_body,
+                            )
+                            log_communication(
+                                schedule_candidate["id"], "email", schedule_candidate["email"],
+                                "Your OfferPilot interview schedule", email_body, delivery["status"]
+                            )
+                            st.success("Interview saved and schedule email sent.")
+                        except Exception as exc:
+                            st.warning(f"Interview saved, but email failed: {exc}")
+                else:
+                    st.success("Interview saved.")
+        if st.session_state.get("last_interview_ics"):
+            st.download_button(
+                "Download calendar invitation (.ics)",
+                data=st.session_state["last_interview_ics"],
+                file_name="offerpilot_interview.ics",
+                mime="text/calendar",
+            )
+        scheduled = list_interviews()
+        if scheduled:
+            st.markdown("### Scheduled interviews")
+            st.dataframe(pd.DataFrame(scheduled), use_container_width=True, hide_index=True)
+
+
+st.markdown('<div class="footer">Human-reviewed hiring intelligence</div>', unsafe_allow_html=True)

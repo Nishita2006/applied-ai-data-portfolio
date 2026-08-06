@@ -55,3 +55,18 @@ def ask_llm(prompt, system_message=None, temperature=0.2):
     )
 
     return response.choices[0].message.content
+
+
+def transcribe_audio(audio_bytes, filename="interview.wav"):
+    """Transcribe consented interview audio with Groq Whisper when configured."""
+    api_key = get_groq_api_key()
+    if not api_key:
+        return None
+    client = Groq(api_key=api_key)
+    transcription = client.audio.transcriptions.create(
+        file=(filename, audio_bytes),
+        model="whisper-large-v3-turbo",
+        response_format="text",
+        temperature=0.0,
+    )
+    return transcription if isinstance(transcription, str) else transcription.text
