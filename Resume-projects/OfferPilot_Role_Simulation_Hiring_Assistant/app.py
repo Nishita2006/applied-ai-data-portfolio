@@ -87,24 +87,24 @@ st.markdown(
     <style>
         :root {
             color-scheme: light dark;
-            --op-bg: #07111f;
-            --op-panel: #0d1b2d;
-            --op-panel-2: #11233a;
+            --op-bg: #08131a;
+            --op-panel: #0e2028;
+            --op-panel-2: #15303a;
             --op-border: rgba(148, 163, 184, 0.18);
             --op-text: #f8fafc;
             --op-muted: #9fb0c7;
-            --op-primary: #8b5cf6;
-            --op-primary-2: #38bdf8;
-            --op-success: #2dd4bf;
-            --op-warning: #fbbf24;
+            --op-primary: #2dd4bf;
+            --op-primary-2: #67e8f9;
+            --op-success: #34d399;
+            --op-warning: #f6c76b;
             --op-danger: #fb7185;
         }
 
         @media (prefers-color-scheme: light) {
             :root {
-                --op-bg: #f4f7fb; --op-panel: #ffffff; --op-panel-2: #edf3fa;
+                --op-bg: #f5f7f4; --op-panel: #ffffff; --op-panel-2: #edf4f1;
                 --op-border: rgba(30, 41, 59, 0.16); --op-text: #172033;
-                --op-muted: #53657b; --op-primary: #6d4aff; --op-primary-2: #087ea4;
+                --op-muted: #536560; --op-primary: #087f70; --op-primary-2: #0e7490;
                 --op-success: #087f68; --op-warning: #a15c00; --op-danger: #be3455;
             }
             [data-testid="stHeader"] { background: rgba(244,247,251,.88) !important; }
@@ -119,8 +119,8 @@ st.markdown(
 
         .stApp {
             background:
-                radial-gradient(circle at 8% 0%, rgba(139, 92, 246, 0.18), transparent 28%),
-                radial-gradient(circle at 95% 5%, rgba(56, 189, 248, 0.13), transparent 24%),
+                radial-gradient(circle at 8% 0%, rgba(45, 212, 191, 0.10), transparent 28%),
+                radial-gradient(circle at 95% 5%, rgba(103, 232, 249, 0.08), transparent 24%),
                 var(--op-bg);
             color: var(--op-text);
         }
@@ -133,6 +133,26 @@ st.markdown(
         [data-testid="stSidebar"] {
             background: var(--op-panel);
             border-right: 1px solid var(--op-border);
+        }
+
+        [data-testid="stSidebar"] [role="radiogroup"] {
+            gap: 0.3rem;
+        }
+        [data-testid="stSidebar"] [role="radiogroup"] label {
+            padding: 0.55rem 0.7rem;
+            border-radius: 10px;
+            transition: background .15s ease;
+        }
+        [data-testid="stSidebar"] [role="radiogroup"] label:hover {
+            background: rgba(45, 212, 191, 0.08);
+        }
+        [data-testid="stSidebar"] [aria-checked="true"] {
+            background: rgba(45, 212, 191, 0.13);
+            color: var(--op-text);
+        }
+        .stButton > button[kind="primary"] {
+            background: linear-gradient(135deg, #0f9f8d, #0e7490);
+            border: 0;
         }
 
         .block-container {
@@ -150,8 +170,8 @@ st.markdown(
             border: 1px solid var(--op-border);
             border-radius: 24px;
             background:
-                linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(56, 189, 248, 0.07)),
-                rgba(13, 27, 45, 0.88);
+                linear-gradient(135deg, rgba(45, 212, 191, 0.10), rgba(103, 232, 249, 0.04)),
+                var(--op-panel);
             box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
             margin-bottom: 1.2rem;
         }
@@ -342,7 +362,7 @@ st.markdown(
             border-radius: 10px;
             margin-right: 0.5rem;
             font-weight: 850;
-            background: linear-gradient(135deg, #8b5cf6, #38bdf8);
+            background: linear-gradient(135deg, #0f9f8d, #0e7490);
             color: white;
         }
 
@@ -384,7 +404,7 @@ st.markdown(
         }
 
         .stButton > button[kind="primary"] {
-            background: linear-gradient(90deg, #7c3aed, #2563eb);
+            background: linear-gradient(90deg, #0f9f8d, #0e7490);
             border: none;
         }
 
@@ -1526,14 +1546,26 @@ with st.sidebar:
         f'Signed in as {current_workspace_user.get("name", "Unknown")} · '
         f'{current_workspace_user.get("role", "unknown").replace("_", " ").title()}'
     )
-    with st.popover("Open app guide", use_container_width=True):
-        st.markdown(
-            "**1. Role** — add or reopen a job.  \n"
-            "**2. Screen** — upload resumes together.  \n"
-            "**3. Compare** — audit evidence and ranking.  \n"
-            "**4. Validate** — use tailored questions and practical review.  \n"
-            "**5. Decide** — record the human decision and update the candidate."
-        )
+    st.markdown("### Navigation")
+    active_page = st.radio(
+        "Workspace navigation",
+        ["Dashboard", "Role setup", "Candidate screening", "Validation", "Pipeline", "AI assistant", "Settings"],
+        label_visibility="collapsed",
+    )
+
+    with st.expander("Getting started", expanded=not bool(st.session_state.job_description)):
+        if not st.session_state.job_description:
+            st.markdown("**Next: create a role**")
+            st.caption("Open Role setup and paste the job description. The role summary becomes the assessment blueprint.")
+        elif st.session_state.candidate_df.empty:
+            st.markdown("**Next: add candidates**")
+            st.caption("Open Candidate screening and upload all resumes for this role in one batch.")
+        elif not st.session_state.candidate_rubric_scores:
+            st.markdown("**Next: validate evidence**")
+            st.caption("Review the ranked evidence, then open Validation for tailored technical and scenario questions.")
+        else:
+            st.markdown("**Next: document the decision**")
+            st.caption("Complete the human review, record the rationale, and update the candidate in Pipeline.")
     saved_role_rows = list_jobs()
     if saved_role_rows:
         role_options = {f'{row["title"]} · {row["id"]}': row for row in saved_role_rows}
@@ -1545,42 +1577,15 @@ with st.sidebar:
         st.session_state.workspace_user = None
         st.rerun()
 
-    progress_steps = [
-        ("1", "Role analyzed", bool(st.session_state.job_description)),
-        ("2", "Candidates screened", not st.session_state.candidate_df.empty),
-        ("3", "Simulation reviewed", bool(st.session_state.candidate_signal_cards)),
-        ("4", "Decision documented", bool(st.session_state.recruiter_decisions)),
-    ]
-
-    st.markdown("### Workflow")
-    for number, label, completed in progress_steps:
-        icon = "✓" if completed else number
-        st.markdown(f"**{icon}** &nbsp; {label}")
-
     st.divider()
 
     llm_status = is_llm_available()
     if llm_status:
-        st.success("AI mode connected")
+        st.caption("● AI assistant connected")
     else:
-        st.info("Reliable fallback mode active")
-
-    with st.expander("Connection details"):
-        st.write(
-            "OfferPilot uses the Groq-powered workflow when an API key is available "
-            "and deterministic fallback logic when it is not."
-        )
-        if llm_status and st.button("Test AI connection", use_container_width=True):
-            try:
-                st.write(ask_llm("Reply with exactly: OfferPilot is ready."))
-            except Exception as exc:
-                st.error(f"Connection test failed: {exc}")
+        st.caption("○ AI assistant not configured")
 
     st.divider()
-
-    if st.button("Load demo: compare 3 candidates", type="primary", use_container_width=True):
-        load_demo()
-        st.rerun()
 
     if st.button("Reset workspace", use_container_width=True):
         reset_workspace()
@@ -1614,85 +1619,39 @@ st.markdown(
 
 
 # ============================================================
-# MAIN NAVIGATION
+# PAGE ROUTING
 # ============================================================
-
-tab_overview, tab_role, tab_screening, tab_comparison, tab_verification, tab_simulation, tab_interview, tab_updates, tab_history, tab_assistant, tab_operations = st.tabs(
-    [
-        "Executive Overview",
-        "1 · Role Intelligence",
-        "2 · Advanced ATS Check",
-        "3 · Evidence Comparison",
-        "4 · Skill Verification",
-        "5 · Simulation & Decision",
-        "6 · Interview Evidence",
-        "7 · Candidate Updates",
-        "8 · History",
-        "9 · AI Assistant",
-        "10 · Settings",
-    ]
-)
-
 
 # ============================================================
 # EXECUTIVE OVERVIEW
 # ============================================================
 
-with tab_overview:
+if active_page == "Dashboard":
     st.markdown("## Hiring review at a glance")
 
     if st.session_state.candidate_df.empty:
-        left, right = st.columns([1.35, 1])
-
-        with left:
-            st.markdown(
-                """
-                <div class="section-card">
-                    <h3>Built for a credible live demo</h3>
-                    <p class="muted">
-                        Start with a real job description and uploaded resumes, or
-                        load the complete HR demo from the sidebar to show the full
-                        workflow immediately.
-                    </p>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-
-            step_cols = st.columns(3)
-            steps = [
-                ("1", "Understand the role", "Extract skills, seniority, responsibilities, and candidate expectations."),
-                ("2", "Compare evidence", "Rank candidates with technical fit, text similarity, and soft-skill evidence."),
-                ("3", "Validate capability", "Score a practical work simulation and document the recruiter decision."),
-            ]
-            for col, (number, title, copy) in zip(step_cols, steps):
-                with col:
-                    st.markdown(
-                        f"""
-                        <div class="candidate-card">
-                            <span class="step-number">{number}</span>
-                            <strong>{title}</strong>
-                            <p class="muted" style="margin-top:0.8rem;">{copy}</p>
-                        </div>
-                        """,
-                        unsafe_allow_html=True,
-                    )
-
-        with right:
-            st.markdown("### Demo-ready in one click")
-            st.write(
-                "The sample workflow includes one role, three candidate profiles, "
-                "three simulation responses, rubric scores, signal cards, and saved "
-                "recruiter decisions."
-            )
-            if st.button(
-                "Load demo: compare 3 candidates",
-                type="primary",
-                use_container_width=True,
-                key="overview_demo_button",
-            ):
-                load_demo()
-                st.rerun()
+        st.markdown(
+            """
+            <div class="section-card">
+                <div class="eyebrow">Workspace ready</div>
+                <h3>Start a structured hiring review</h3>
+                <p class="muted">Create the role blueprint first, then upload the candidate resumes together for a consistent comparison.</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        step_cols = st.columns(3)
+        steps = [
+            ("01", "Define the role", "Paste the job description and confirm the concise success profile."),
+            ("02", "Screen candidates", "Upload multiple resumes and review contextual evidence side by side."),
+            ("03", "Validate and decide", "Use tailored questions, practical evidence, and a documented human decision."),
+        ]
+        for col, (number, title, copy) in zip(step_cols, steps):
+            with col:
+                st.markdown(
+                    f'<div class="candidate-card"><div class="candidate-rank">{number}</div><h4>{title}</h4><p class="muted">{copy}</p></div>',
+                    unsafe_allow_html=True,
+                )
 
     else:
         df = st.session_state.candidate_df
@@ -1741,20 +1700,13 @@ with tab_overview:
 # ROLE INTELLIGENCE
 # ============================================================
 
-with tab_role:
+if active_page == "Role setup":
     st.markdown("## Role intelligence")
     st.caption(
         "Turn an unstructured job description into a concise, readable assessment blueprint."
     )
 
     if not st.session_state.jd_analysis:
-        input_left, input_right = st.columns([3, 1])
-
-        with input_right:
-            if st.button("Use sample role", use_container_width=True):
-                st.session_state.job_description = DEMO_JOB_DESCRIPTION
-                st.rerun()
-
         job_description = st.text_area(
             "Job description",
             height=300,
@@ -1877,7 +1829,7 @@ with tab_role:
 # CANDIDATE SCREENING
 # ============================================================
 
-with tab_screening:
+if active_page == "Candidate screening":
     st.markdown("## Advanced ATS resume check")
     st.caption(
         "Run an explainable ATS check using exact skills, synonyms, related "
@@ -1895,62 +1847,38 @@ with tab_screening:
     if not st.session_state.job_description:
         st.info("Analyze a role in the Role Intelligence tab before screening resumes.")
     else:
-        source = st.radio(
-            "Candidate source",
-            ["Upload resume PDFs", "Use sample candidate set"],
-            horizontal=True,
+        uploaded_resumes = st.file_uploader(
+            "Upload candidate resumes",
+            type=["pdf"],
+            accept_multiple_files=True,
+            help="Upload all resumes for this role together. Text-based PDFs work best.",
         )
 
-        if source == "Upload resume PDFs":
-            uploaded_resumes = st.file_uploader(
-                "Upload candidate resumes",
-                type=["pdf"],
-                accept_multiple_files=True,
-                help="Text-based PDFs work best. Scanned PDFs may require OCR.",
-            )
+        if st.button(
+            "Screen candidates",
+            type="primary",
+            disabled=not uploaded_resumes,
+        ):
+            documents = []
+            extraction_errors = []
 
-            if st.button(
-                "Screen uploaded candidates",
-                type="primary",
-                disabled=not uploaded_resumes,
-            ):
-                documents = []
-                extraction_errors = []
+            with st.spinner("Reading resumes and evaluating contextual evidence..."):
+                for resume in uploaded_resumes or []:
+                    try:
+                        text = extract_text_from_pdf(resume)
+                        if not text or not text.strip():
+                            extraction_errors.append(f"{resume.name}: no readable text found.")
+                            continue
+                        documents.append({"Candidate": resume.name.rsplit(".", 1)[0], "Resume Text": text})
+                    except Exception as exc:
+                        extraction_errors.append(f"{resume.name}: {exc}")
 
-                with st.spinner("Extracting resume evidence and calculating scores..."):
-                    for resume in uploaded_resumes or []:
-                        try:
-                            text = extract_text_from_pdf(resume)
-                            if not text or not text.strip():
-                                extraction_errors.append(
-                                    f"{resume.name}: no readable text found."
-                                )
-                                continue
-                            documents.append(
-                                {
-                                    "Candidate": resume.name.rsplit(".", 1)[0],
-                                    "Resume Text": text,
-                                }
-                            )
-                        except Exception as exc:
-                            extraction_errors.append(f"{resume.name}: {exc}")
+                if documents:
+                    build_candidate_tables(documents)
+                    st.success(f"Screened {len(documents)} candidates.")
 
-                    if documents:
-                        build_candidate_tables(documents)
-                        st.success(f"Screened {len(documents)} candidates.")
-
-                for error in extraction_errors:
-                    st.warning(error)
-
-        else:
-            st.write(
-                "Use the included strong, developing, and limited-fit profiles to "
-                "demonstrate how the scoring model separates different evidence levels."
-            )
-            if st.button("Screen sample candidates", type="primary"):
-                build_candidate_tables(DEMO_CANDIDATES)
-                st.session_state.demo_mode = True
-                st.success("Sample candidate set screened.")
+            for error in extraction_errors:
+                st.warning(error)
 
         if not st.session_state.candidate_df.empty:
             df = st.session_state.candidate_df
@@ -2107,7 +2035,7 @@ with tab_screening:
 # EVIDENCE COMPARISON
 # ============================================================
 
-with tab_comparison:
+if active_page == "Candidate screening":
     st.markdown("## Evidence comparison")
     st.caption("See exactly which role competencies appear in each candidate profile.")
 
@@ -2171,7 +2099,7 @@ with tab_comparison:
 # SKILL VERIFICATION
 # ============================================================
 
-with tab_verification:
+if active_page == "Validation":
     st.markdown("## Skill claim verification")
     st.caption(
         "See whether each candidate supports a skill with project evidence, "
@@ -2542,7 +2470,7 @@ with tab_verification:
 # SIMULATION & DECISION
 # ============================================================
 
-with tab_simulation:
+if active_page == "Validation":
     st.markdown("## Simulation and recruiter decision")
     st.caption(
         "Validate how candidates think through realistic work—not only how their "
@@ -2568,20 +2496,8 @@ with tab_simulation:
             )
             st.session_state.last_selected_candidate = selected_candidate
 
-        button_cols = st.columns([1, 1, 2])
-
+        button_cols = st.columns([1, 3])
         with button_cols[0]:
-            if (
-                st.session_state.demo_mode
-                and selected_candidate in DEMO_RESPONSES
-                and st.button("Load sample response", use_container_width=True)
-            ):
-                st.session_state.current_candidate_answer = DEMO_RESPONSES[
-                    selected_candidate
-                ]
-                st.rerun()
-
-        with button_cols[1]:
             if st.button("Clear response", use_container_width=True):
                 st.session_state.current_candidate_answer = ""
                 st.rerun()
@@ -2876,7 +2792,7 @@ with tab_simulation:
             )
 
 
-with tab_interview:
+if active_page == "Validation":
     st.markdown("## Interview evidence workspace")
     st.caption(
         "Capture a consented interview transcript, review answer evidence, and "
@@ -3039,7 +2955,7 @@ with tab_interview:
             )
 
 
-with tab_updates:
+if active_page == "Pipeline":
     st.markdown("## Candidate milestone updates")
     st.caption(
         "Give candidates a clear view of their application progress and send "
@@ -3269,7 +3185,7 @@ with tab_updates:
             )
 
 
-with tab_history:
+if active_page == "Pipeline":
     st.markdown("## Application and change history")
     st.caption("Reopen earlier profiles, spot repeat applicants, and review who changed what.")
     history_candidates = list_persisted_candidates()
@@ -3312,7 +3228,7 @@ with tab_history:
         )
 
 
-with tab_assistant:
+if active_page == "AI assistant":
     st.markdown("## Recruiter AI assistant")
     st.caption("Ask about the active role, candidates, evidence, workflow, or next review steps.")
     if not is_llm_available():
@@ -3341,7 +3257,7 @@ Recruiter question: {assistant_prompt}
         st.rerun()
 
 
-with tab_operations:
+if active_page == "Settings":
     st.markdown("## Platform operations")
     st.caption(
         "Persistent records, workspace access, candidate portal links, audit history, "
