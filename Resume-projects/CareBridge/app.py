@@ -54,7 +54,7 @@ elif config.supabase_ready:
     if "supabase_client" not in st.session_state:
         from supabase import create_client
         st.session_state.supabase_client=create_client(config.supabase_url,config.supabase_anon_key)
-    auth=SupabaseAuth(st.session_state.supabase_client)
+    auth=SupabaseAuth(st.session_state.supabase_client,config.app_url)
     if not current_user and (st.query_params.get("start")=="1" or st.query_params.get("auth") or st.session_state.get("auth_mode")):
         mode=st.query_params.get("auth") or st.session_state.get("auth_mode","signup")
         result=auth_screen(auth,mode)

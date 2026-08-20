@@ -60,7 +60,13 @@ def test_placeholder_supabase_url_is_not_ready(monkeypatch):
 
 def test_auth_errors_are_sanitized():
     client=SimpleNamespace(auth=SimpleNamespace(sign_in_with_password=lambda payload: (_ for _ in ()).throw(RuntimeError("invalid login credentials internal trace"))))
-    with pytest.raises(AuthError,match="email or password"): SupabaseAuth(client).sign_in("person@example.com","bad-password")
+    with pytest.raises(AuthError,match="Check your email and password"): SupabaseAuth(client).sign_in("person@example.com","bad-password")
+
+def test_signup_uses_carebridge_redirect_url():
+    captured={}
+    client=SimpleNamespace(auth=SimpleNamespace(sign_up=lambda payload: captured.update(payload) or SimpleNamespace(user=None,session=None)))
+    SupabaseAuth(client,"https://carebridge.example").sign_up("person@example.com","password1","Person")
+    assert captured["options"]["email_redirect_to"]=="https://carebridge.example/?auth=signin&confirmed=1"
 
 def test_store_scopes_visits_to_authenticated_user():
     client=Client({"visits":[{"id":"a","user_id":"user-a","appointment_date":"2026-01-01","appointment_time":"09:00"},{"id":"b","user_id":"user-b","appointment_date":"2026-01-01","appointment_time":"09:00"}]})
