@@ -27,8 +27,14 @@ def test_nlp_preserves_original():
 def test_medical_advice_is_refused():
     assert safety_check("Can I stop this prescription?")[0] is False
 
+def test_emergency_language_redirects_without_triage():
+    allowed,message=safety_check("I cannot breathe")
+    assert allowed is False
+    assert "emergency services" in message
 
-def test_rag_answer_has_citation():
+
+def test_rag_answer_has_citation(monkeypatch):
+    monkeypatch.delenv("GROQ_API_KEY", raising=False)
     chunks = load_record_chunks(Path("sample_records"))
     result = answer("When is the follow-up appointment?", chunks)
     assert result["citations"]
@@ -36,32 +42,60 @@ def test_rag_answer_has_citation():
     assert 0 <= result["evidence"][0]["score"] <= 1
 
 
-def test_rag_reports_insufficient_evidence():
+def test_rag_reports_insufficient_evidence(monkeypatch):
+    monkeypatch.delenv("GROQ_API_KEY", raising=False)
     chunks = load_record_chunks(Path("sample_records"))
     result = answer("What is the parking garage color?", chunks)
     assert "not find enough evidence" in result["answer"]
     assert result["evidence"] == []
 
 
-def test_rag_uses_configured_openai_model_with_grounded_context(monkeypatch):
+def test_rag_uses_configured_groq_model_with_grounded_context(monkeypatch):
     captured = {}
 
-    class FakeChatOpenAI:
+    class FakeCompletions:
+        def create(self, **kwargs):
+            captured["request"] = kwargs
+            return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content="The follow-up is documented in the record [1]."))])
+
+    class FakeGroq:
         def __init__(self, **kwargs):
             captured["config"] = kwargs
+            self.chat = SimpleNamespace(completions=FakeCompletions())
 
-        def invoke(self, prompt):
-            captured["prompt"] = prompt
-            return SimpleNamespace(content="The follow-up is documented in the record [1].")
-
-    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
-    monkeypatch.setenv("OPENAI_MODEL", "test-model")
-    monkeypatch.setitem(sys.modules, "langchain_openai", SimpleNamespace(ChatOpenAI=FakeChatOpenAI))
+    monkeypatch.setenv("GROQ_API_KEY", "test-key")
+    monkeypatch.setenv("GROQ_MODEL", "test-model")
+    monkeypatch.setitem(sys.modules, "groq", SimpleNamespace(Groq=FakeGroq))
 
     chunks = load_record_chunks(Path("sample_records"))
     result = answer("When is the follow-up appointment?", chunks)
 
-    assert result["mode"] == "LangChain + OpenAI"
-    assert captured["config"]["model"] == "test-model"
-    assert "Use only the numbered record excerpts" in captured["prompt"]
+    assert result["mode"] == "Groq grounded composition"
+    assert captured["request"]["model"] == "test-model"
+    prompt = captured["request"]["messages"][0]["content"]
+    assert "Use only the numbered record excerpts" in prompt
+    assert "When is the follow-up appointment?" in prompt
     assert "[1]" in result["answer"]
+
+def test_rag_uses_default_groq_model(monkeypatch):
+    captured = {}
+    class Completions:
+        def create(self, **kwargs):
+            captured.update(kwargs)
+            return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content="Supported [1]."))])
+    class FakeGroq:
+        def __init__(self, **kwargs): self.chat=SimpleNamespace(completions=Completions())
+    monkeypatch.setenv("GROQ_API_KEY", "test-key")
+    monkeypatch.delenv("GROQ_MODEL", raising=False)
+    monkeypatch.setitem(sys.modules, "groq", SimpleNamespace(Groq=FakeGroq))
+    answer("When is the follow-up appointment?", load_record_chunks(Path("sample_records")))
+    assert captured["model"] == "llama-3.1-8b-instant"
+
+def test_groq_error_falls_back_to_local_retrieval(monkeypatch):
+    class FailingGroq:
+        def __init__(self, **kwargs): raise RuntimeError("rate limited")
+    monkeypatch.setenv("GROQ_API_KEY", "bad-key")
+    monkeypatch.setitem(sys.modules, "groq", SimpleNamespace(Groq=FailingGroq))
+    result=answer("When is the follow-up appointment?",load_record_chunks(Path("sample_records")))
+    assert result["mode"] == "local TF-IDF retrieval"
+    assert result["evidence"]

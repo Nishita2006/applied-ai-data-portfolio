@@ -4,6 +4,7 @@ from __future__ import annotations
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
+from functools import lru_cache
 
 TRAINING_TEXTS = [
     "referral requested specialist consultation reason for referral",
@@ -18,6 +19,7 @@ TRAINING_TEXTS = [
 TRAINING_LABELS = ["Referral", "Referral", "Lab result", "Lab result", "Insurance", "Insurance", "Visit note", "Visit note"]
 
 
+@lru_cache(maxsize=1)
 def build_classifier() -> Pipeline:
     model = Pipeline([
         ("tfidf", TfidfVectorizer(ngram_range=(1, 2), stop_words="english")),
@@ -47,4 +49,5 @@ def classify_document_details(text: str) -> dict:
     weights = classifier.coef_[class_index]
     ranked = sorted(present, key=lambda i: vector[0, i] * weights[i], reverse=True)
     features = [str(feature_names[i]) for i in ranked[:5] if weights[i] > 0]
-    return {"category": label, "confidence": float(probabilities[class_index]), "features": features}
+    confidence = float(probabilities[class_index])
+    return {"category": label if confidence >= .35 else "Uncertain", "confidence": confidence, "features": features}

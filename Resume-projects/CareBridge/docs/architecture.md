@@ -13,6 +13,6 @@ flowchart LR
   I --> J[PDF export or authorized sharing]
 ```
 
-The portfolio demo deliberately uses a compact stack: Streamlit UI, SQLite/SQL storage, Pandas and NumPy analytics, Matplotlib EDA, scikit-learn ML/NLP retrieval, and optional LangChain/OpenAI generation. This keeps every data and AI step inspectable by a recruiter.
+The portfolio application deliberately uses a compact stack: Streamlit UI, SQLite/SQL storage, Pandas and NumPy analytics, Matplotlib export, scikit-learn retrieval, and optional Groq answer composition. This keeps every data and AI step inspectable.
 
 Every retrieved chunk must include `patient_id`, `appointment_id`, document, page, and section metadata. Authorization is applied before retrieval and again before returning citations. Generated wording never overwrites the original source.

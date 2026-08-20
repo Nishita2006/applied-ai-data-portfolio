@@ -1,45 +1,28 @@
 from __future__ import annotations
-
+from datetime import date
 from io import BytesIO
-
-import pandas as pd
+from textwrap import wrap
 from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.figure import Figure
 
-
-def build_visit_pdf(appointment: pd.Series, symptoms: pd.DataFrame, medications: pd.DataFrame, questions: pd.DataFrame) -> bytes:
-    """Create a compact, printable patient-prepared visit brief."""
-    buffer = BytesIO()
+def build_visit_pdf(visit: dict, symptoms: list[dict], medications: list[dict], allergies: list[dict], documents: list[dict], questions: list[dict]) -> bytes:
+    buffer=BytesIO()
+    sections=[("Appointment",[f"{visit['appointment_date']} at {visit['appointment_time']}",f"{visit['provider']} — {visit['specialty']}",f"Purpose: {visit['reason']}"] + ([f"Location: {visit['location']}"] if visit.get('location') else [])),
+      ("Main concern",[visit['reason']]),
+      ("Symptoms",[f"{x['name']} | onset: {x.get('onset') or 'not provided'} | patient-reported severity: {x.get('severity') if x.get('severity') is not None else 'not provided'} | {x.get('description') or ''}" for x in symptoms]),
+      ("Medications",[f"{x['name']} | {x.get('dose') or 'dose not provided'} | {x.get('frequency') or 'frequency not provided'}" for x in medications]),
+      ("Allergies",[f"{x['allergy']} | reported reaction: {x.get('reaction') or 'not provided'}" for x in allergies]),
+      ("Relevant records",[f"{x['title']} | {x.get('category') or 'category unconfirmed'}" for x in documents]),
+      ("Questions for provider",[x['question'] for x in questions])]
+    pages=[]; lines=[("CareBridge visit brief",18,True),(f"Generated {date.today().isoformat()} · Patient-prepared and reviewed",9,False)]
+    for title,items in sections:
+        lines.append((title,12,True))
+        lines += [("• "+part,9,False) for item in (items or ["None entered"]) for part in wrap(str(item),100)]
+    while lines: pages.append(lines[:38]); lines=lines[38:]
     with PdfPages(buffer) as pdf:
-        figure = Figure(figsize=(8.27, 11.69), facecolor="white")
-        axis = figure.subplots()
-        axis.axis("off")
-        y = .96
-
-        def line(text: str, *, size: int = 10, weight: str = "normal", gap: float = .032) -> None:
-            nonlocal y
-            axis.text(.07, y, text, fontsize=size, weight=weight, color="#18313b", va="top", wrap=True)
-            y -= gap
-
-        line("CareBridge", size=20, weight="bold", gap=.04)
-        line("Patient-prepared visit brief", size=13, weight="bold", gap=.045)
-        line("FICTIONAL SAMPLE DATA · NOT INDEPENDENTLY VERIFIED", size=8, weight="bold", gap=.05)
-        line("Appointment", size=12, weight="bold")
-        line(f"{appointment.title} with {appointment.provider}")
-        line("September 18, 2026 at 10:30 AM · In person")
-        line(f"Main reason: {appointment.reason}", gap=.055)
-        line("Symptoms", size=12, weight="bold")
-        for row in symptoms.itertuples():
-            line(f"• {row.symptom} — started {row.onset_date}; severity {row.severity}/10; {row.pattern}")
-        y -= .02
-        line("Current medications", size=12, weight="bold")
-        for row in medications.itertuples():
-            line(f"• {row.name}, {row.strength}, {row.frequency}")
-        y -= .02
-        line("Priority questions", size=12, weight="bold")
-        for row in questions.loc[questions.priority == 1].itertuples():
-            line(f"• {row.question}")
-        y -= .025
-        line("CareBridge supports appointment preparation only. It does not diagnose, recommend treatment, or replace professional medical care.", size=8)
-        pdf.savefig(figure, bbox_inches="tight")
+        for page in pages:
+            fig=Figure(figsize=(8.27,11.69),facecolor="white"); ax=fig.subplots(); ax.axis("off"); y=.95
+            for text,size,bold in page: ax.text(.07,y,text,fontsize=size,weight="bold" if bold else "normal",va="top",color="#173a4c"); y-=.035 if size<12 else .048
+            ax.text(.07,.035,"Preparation and communication support only — not medical advice.",fontsize=8,color="#61747b")
+            pdf.savefig(fig,bbox_inches="tight")
     return buffer.getvalue()

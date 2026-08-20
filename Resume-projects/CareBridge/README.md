@@ -1,208 +1,91 @@
 # CareBridge — Patient Visit Preparation Assistant
 
-CareBridge is an AI-assisted patient visit preparation application that helps patients organize appointment requirements, symptoms, medications, records, provider questions, and a patient-reviewed visit brief in one workspace.
+CareBridge helps a user organize an upcoming healthcare visit from a clean, private-by-design workspace: appointment details, readiness tasks, symptoms in the user's own words, medications, allergies, records, provider questions, and a reviewed visit brief.
 
-The application is designed as a student-built MVP. It supports preparation and communication; it does not diagnose conditions, recommend treatment, advise medication changes, or replace a healthcare professional.
+**Live application:** https://carebridge-ai.streamlit.app/
 
-## Live Application
+CareBridge supports preparation and communication. It does not diagnose, triage, recommend treatment, or advise medication changes. The public deployment is a portfolio project and is not certified for protected health information.
 
-**Streamlit app:** https://carebridge-ai.streamlit.app/
+## Workflow
 
-The public workspace uses a fictional patient and fictional records. No real patient information is included.
+Create a visit → complete readiness tasks → record symptoms → add medications and allergies → upload TXT/PDF records → confirm document categories → ask source-grounded record questions → prepare provider questions → review and confirm the visit brief → export PDF or JSON.
 
-## Why CareBridge
+All end-user content comes from the user. A new database starts empty.
 
-Patients often prepare for appointments using information spread across memory, medication lists, referrals, reports, insurance documents, and patient portals. Important details can be missed during a short visit.
+## Architecture and stack
 
-CareBridge brings the preparation process into one structured workflow:
+- Streamlit UI in `app.py`
+- Supabase Auth, PostgreSQL, private Storage, and Row Level Security for deployed persistence
+- Repository boundary in `src/store.py`; SQLite is available only when explicit local-development mode is enabled
+- TXT/PDF extraction in `src/documents.py`
+- Cached TF-IDF/logistic-regression document routing in `src/ml.py`
+- Local TF-IDF retrieval with citations in `src/rag.py`
+- Optional evidence-only Groq composition using the official Groq SDK
+- Matplotlib PDF generation in `src/export.py`
+- Pytest and Streamlit AppTest coverage in `tests/`
 
-- Track appointment requirements
-- Record symptoms in the patient's own words
-- Review medications and reported allergies
-- Organize appointment records
-- Prepare questions for the provider
-- Find cited information in available records
-- Export a concise visit brief
-
-## Core Workflow
-
-### 1. Appointment Overview
-
-The overview shows the next appointment, its main purpose, preparation progress, incomplete items, symptoms entered, and questions prepared.
-
-The **Visit Preparation** percentage measures administrative completeness only. It is not a health, urgency, or medical-safety score.
-
-### 2. Visit Readiness
-
-Patients can review and update preparation items such as:
-
-- Confirming appointment details
-- Adding insurance and referral information
-- Reviewing medication and allergy information
-- Completing symptom history
-- Uploading requested records
-- Confirming transportation
-
-Progress is saved in SQLite.
-
-### 3. Symptoms and Timeline
-
-Patients can review symptom onset, severity, and patterns, then enter a new description in their own words.
-
-CareBridge saves each response exactly as the patient entered it. It does not rewrite or reinterpret the patient's description.
-
-Medication and allergy information remains visible alongside symptom preparation. CareBridge never recommends starting, stopping, or changing medication.
-
-### 4. Document Intelligence
-
-Patients can review existing appointment records or add text from a new record.
-
-CareBridge suggests a document category and shows:
-
-- Suggested category
-- Confidence
-- Words that influenced the suggestion
-- A reminder that the category requires confirmation
-
-The classifier organizes document types only. It does not interpret medical meaning or produce clinical conclusions.
-
-### 5. Records Assistant
-
-Patients can ask administrative questions about the records available in their workspace.
-
-Answers include:
-
-- The retrieved answer
-- Source document
-- Relevant excerpt
-- Retrieval score
-- A clear response when there is not enough evidence
-
-When an OpenAI API key is configured, LangChain sends only the retrieved excerpts and the user's question to the model to compose a grounded answer. The same citations and safety restrictions remain in place. Local retrieval is the automatic fallback if the model is unavailable.
-
-### 6. Visit Brief
-
-The visit brief combines:
-
-- Appointment details
-- Main concern
-- Symptoms and timeline information
-- Current medications
-- Priority questions
-
-The patient must confirm that the brief reflects their information before downloading it. The application provides a printable PDF and a CSV data export.
-
-## Responsible-AI Design
-
-CareBridge is designed as preparation support with a human-review boundary.
-
-Safeguards include:
-
-- No diagnosis or disease prediction
-- No treatment recommendations
-- No medication or dosage advice
-- Emergency-language redirection
-- Original patient wording preserved
-- Sources and excerpts displayed with retrieved answers
-- Insufficient-evidence responses instead of unsupported answers
-- Patient confirmation before summary export
-- Fictional information in the public application
-
-## Data and Application Design
-
-Appointments, preparation tasks, symptoms, medications, records, and questions are stored in a normalized SQLite database. Pandas and NumPy support preparation metrics and data processing. Matplotlib displays patient-entered symptom severity. A small TF-IDF and logistic-regression model suggests document categories. Local TF-IDF retrieval supplies source-cited record answers, with optional LangChain and OpenAI generation when configured.
-
-The technical implementation remains intentionally compact so the workflow can be reviewed and run as a student MVP.
-
-## Project Structure
-
-```text
-CareBridge/
-├── app.py
-├── requirements.txt
-├── sql/
-│   ├── schema.sql
-│   └── seed.sql
-├── src/
-│   ├── analytics.py
-│   ├── database.py
-│   ├── export.py
-│   ├── ml.py
-│   ├── nlp.py
-│   └── rag.py
-├── sample_records/
-├── notebooks/
-│   └── carebridge_eda.ipynb
-├── tests/
-└── docs/
-```
-
-## Local Setup
-
-From the CareBridge directory:
-
-```bash
-python -m venv .venv
-```
-
-Activate the environment.
-
-Windows PowerShell:
+## Local setup
 
 ```powershell
+python -m venv .venv
 .venv\Scripts\Activate.ps1
-```
-
-macOS or Linux:
-
-```bash
-source .venv/bin/activate
-```
-
-Install dependencies and start the application:
-
-```bash
 pip install -r requirements.txt
+pip install -r requirements-dev.txt
 streamlit run app.py
 ```
 
-Run the tests:
+Run tests with:
 
-```bash
-pip install -r requirements-dev.txt
+```powershell
 pytest
 ```
 
-## OpenAI Model Configuration
+For isolated SQLite development without authentication, set `CAREBRIDGE_LOCAL_MODE=true`. Never enable local mode on a public deployment.
 
-CareBridge remains usable without an API key. To enable the optional model-backed response layer, add these values to Streamlit secrets or environment variables:
+## Supabase setup
+
+1. Create a Supabase project.
+2. Run `sql/supabase_schema.sql` once in the Supabase SQL Editor.
+3. In Supabase Authentication, keep email/password enabled and configure the Site URL and redirect URLs for the deployed Streamlit address.
+4. Add the following Streamlit secrets:
 
 ```toml
-OPENAI_API_KEY = "your-api-key"
-OPENAI_MODEL = "gpt-5.6-luna"
+SUPABASE_URL = "https://your-project.supabase.co"
+SUPABASE_ANON_KEY = "your publishable or anon key"
 ```
 
-For Streamlit Community Cloud, add these values under **App settings → Secrets**. Do not put the real key in `.env`, source code, Git commits, or screenshots. The app's ignored `.streamlit/secrets.toml` file may be used for local development.
+Never use a Supabase service-role key in this application. Without Supabase configuration, the public marketing page remains visible but account and workspace creation are disabled.
 
-## Limitations
+## Optional environment configuration
 
-- The public application uses fictional patient information.
-- The document classifier is trained on a small synthetic dataset.
-- Classification confidence is not medical certainty.
-- Local retrieval is limited to records available in the workspace.
-- Text uploads are limited to TXT files in the current MVP.
-- Authentication and patient-level production access controls are not implemented.
-- The application is not certified to store protected health information.
-- Clinical, legal, security, and accessibility validation would be required before real healthcare use.
+Set the API key as an environment variable or Streamlit secret to enable the optional grounded response composer. The model setting is optional:
 
-## Resume Bullet
+```toml
+GROQ_API_KEY = "..."
+GROQ_MODEL = "llama-3.1-8b-instant"
+```
 
-Built CareBridge, an AI-assisted patient visit preparation MVP that organizes appointment readiness, symptom timelines, medications, records, provider questions, source-cited document retrieval, and patient-reviewed PDF visit briefs using a compact Python and SQLite workflow.
+CareBridge sends only the question and locally retrieved excerpts, not the full database or all records. If configuration or the Groq call fails, it falls back to local retrieval. When `GROQ_MODEL` is omitted, CareBridge uses `llama-3.1-8b-instant`.
 
-## Author
+## Deployment
 
-**Nishita Reddy Yaduguri**
+Deploy `app.py` on Streamlit Community Cloud after applying `sql/supabase_schema.sql` and adding Supabase secrets. The deployed application uses Supabase rather than Streamlit local disk. Uploaded files are stored in the private `carebridge-records` bucket using `user_id/visit_id/document_id/filename` paths.
 
-Computer Science and Data Science, University of Wisconsin–Madison
+## Responsible AI design
 
-GitHub: https://github.com/Nishita2006
+- Retrieval answers use only saved record excerpts and display source, passage, and relevance.
+- Insufficient evidence produces an explicit non-answer.
+- Document confidence describes routing only, never medical certainty.
+- User symptom wording is stored without clinical rewriting.
+- Emergency-type language receives a concise direction to immediate professional help; CareBridge does not triage.
+- Export is unavailable until the user explicitly confirms the brief.
+
+## Current limitations
+
+- Supabase must be configured and the supplied RLS migration applied before account and workspace functionality is available.
+- A hard browser refresh may require sign-in again because Streamlit does not provide this app with a secure browser-cookie session adapter; persisted account data remains available after signing in.
+- Real multi-user/RLS verification must be completed against the configured Supabase project before public launch.
+- PDF extraction supports selectable text; scanned PDFs need OCR before upload.
+- The small document classifier covers broad administrative record categories and requires user confirmation.
+- Optional Groq behavior requires a valid API key and network access and automatically falls back to local retrieval.
+- Clinical, security, accessibility, and regulatory validation would be required before healthcare production use.

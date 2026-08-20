@@ -1,260 +1,286 @@
 from __future__ import annotations
-
-import os
+import json, os
+from datetime import date, time
 from html import escape
-from pathlib import Path
-
-import pandas as pd
 import streamlit as st
-
-from src.analytics import preparation_score, symptom_chart
-from src.database import execute, initialize, query
+from src.auth import AuthUser, SupabaseAuth
+from src.config import load_config
+from src.database import DB_PATH, initialize
+from src.documents import DocumentError, extract_text
 from src.export import build_visit_pdf
 from src.ml import classify_document_details
-from src.rag import answer, load_record_chunks
-from src.records import RECORD_TEXT
+from src.rag import Chunk, answer
+from src.store import LocalStore, SupabaseStore
+from ui.auth import auth_screen
+from ui.components import bento_features, empty_state, final_cta, hero_copy, marketing_nav, page_header, product_preview, progress_card, records_story, responsible_ai, section_header, summary_card, topbar, wordmark, workflow_story
+from ui.styles import apply_styles
 
-ROOT = Path(__file__).parent
+try:
+    for key in ("GROQ_API_KEY","GROQ_MODEL"):
+        if st.secrets.get(key): os.environ[key]=str(st.secrets[key])
+except Exception: pass
+st.set_page_config(page_title="CareBridge",page_icon="CB",layout="wide",initial_sidebar_state="expanded")
+apply_styles()
 
+def table(name: str):
+    return store.list_items(name,st.session_state.active_visit_id)
+def refresh(): st.rerun()
+@st.dialog("Create another visit")
+def create_visit_dialog() -> None:
+    with st.form("additional-visit"):
+        a,b=st.columns(2); appt_date=a.date_input("Appointment date *",min_value=date.today()); appt_time=b.time_input("Appointment time *",value=time(9,0))
+        provider=st.text_input("Provider or clinic *",max_chars=120); specialty=st.text_input("Appointment type or specialty *",max_chars=120); reason=st.text_area("Main reason for visit *",max_chars=1000); location=st.text_input("Location (optional)"); notes=st.text_area("Preparation notes (optional)"); submitted=st.form_submit_button("Create Visit",type="primary",width="stretch")
+    if submitted:
+        if not all(value.strip() for value in (provider,specialty,reason)): st.error("Complete all required fields.")
+        else:
+            new_id=store.create_visit({"appointment_date":str(appt_date),"appointment_time":appt_time.strftime("%H:%M"),"provider":provider.strip(),"specialty":specialty.strip(),"reason":reason.strip(),"location":location.strip(),"notes":notes.strip()})
+            st.session_state.active_visit_id=str(new_id); st.session_state.nav_target="Overview"; st.session_state.creating_visit=False; st.toast("Visit created · Overview opened"); refresh()
+def move_question(items: list[dict],index: int,direction: int) -> None:
+    target=index+direction
+    if target<0 or target>=len(items): return
+    current,other=items[index],items[target]
+    current_position,other_position=current["position"],other["position"]
+    if current_position==other_position: current_position,other_position=index,target
+    store.update("questions",current["id"],{"position":other_position})
+    store.update("questions",other["id"],{"position":current_position})
+    refresh()
 
-def load_optional_model_secrets() -> None:
-    """Use a configured model when available; keep local record search as the fallback."""
-    try:
-        api_key = st.secrets.get("OPENAI_API_KEY")
-        model = st.secrets.get("OPENAI_MODEL")
-    except Exception:
-        return
-    if api_key:
-        os.environ["OPENAI_API_KEY"] = str(api_key)
-    if model:
-        os.environ["OPENAI_MODEL"] = str(model)
+config=load_config(st.secrets)
+current_user=st.session_state.get("auth_user")
+auth=None
+if config.local_mode:
+    initialize(); store=LocalStore(DB_PATH); current_user=AuthUser("local","local@carebridge")
+elif config.supabase_ready:
+    if "supabase_client" not in st.session_state:
+        from supabase import create_client
+        st.session_state.supabase_client=create_client(config.supabase_url,config.supabase_anon_key)
+    auth=SupabaseAuth(st.session_state.supabase_client)
+    if not current_user and (st.query_params.get("start")=="1" or st.query_params.get("auth") or st.session_state.get("auth_mode")):
+        mode=st.query_params.get("auth") or st.session_state.get("auth_mode","signup")
+        result=auth_screen(auth,mode)
+        if result:
+            kind,value=result
+            if kind=="mode": st.session_state.auth_mode=value; st.query_params.clear(); refresh()
+            else: st.session_state.auth_user=value; st.session_state.auth_mode="signin"; st.query_params.clear(); refresh()
+        st.stop()
+    if current_user: store=SupabaseStore(st.session_state.supabase_client,current_user.id)
+else:
+    auth=None
 
+if not current_user:
+    visits=[]
+else:
+    visits=store.list_visits()
 
-load_optional_model_secrets()
-initialize()
-st.set_page_config(page_title="CareBridge", page_icon="🌿", layout="wide", initial_sidebar_state="expanded")
+if current_user and visits:
+    valid_ids={str(v["id"]) for v in visits}
+    candidate=str(st.session_state.get("active_visit_id") or store.get_active_visit() or "")
+    st.session_state.active_visit_id=candidate if candidate in valid_ids else str(visits[0]["id"])
+    if candidate not in valid_ids: store.set_active_visit(st.session_state.active_visit_id)
 
-st.markdown("""
-<style>
-:root{--navy:#14384a;--teal:#277b73;--mint:#e7f2ef;--cream:#f8f6f1;--ink:#18313b;--muted:#687b82;--line:#dbe4e1;--amber:#c3832f}
-.stApp{background:var(--cream);color:var(--ink)}.block-container{padding:2rem 2.5rem 4rem;max-width:1180px}
-[data-testid=stSidebar]{background:var(--navy)}[data-testid=stSidebar] *{color:#eef7f4}
-[data-testid=stSidebar] .safe,[data-testid=stSidebar] .safe *{color:#16384a!important}
-[data-testid=stSidebar] [role=radiogroup] label{padding:.42rem .55rem;border-radius:8px;margin:.08rem 0}
-[data-testid=stSidebar] [role=radiogroup] label:hover{background:rgba(255,255,255,.08)}
-h1,h2,h3{color:#16384a;letter-spacing:-.02em}.hero{background:linear-gradient(135deg,#173a4c,#24655f);padding:1.7rem 1.9rem;border-radius:18px;color:white;margin:.5rem 0 1.2rem;box-shadow:0 14px 35px rgba(20,56,74,.13)}
-.hero h1{color:white;margin:.25rem 0;font-size:2.15rem}.hero p{color:#d4e7e3;margin:.4rem 0}.eyebrow{font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:#7bd0c3;font-weight:700}
-.welcome{font-size:.76rem;color:var(--teal);font-weight:700;letter-spacing:.1em;text-transform:uppercase}.lede{font-size:1.05rem;color:var(--muted);margin-top:-.5rem}
-.soft-card{background:white;border:1px solid var(--line);padding:1rem 1.1rem;border-radius:13px;margin:.55rem 0;box-shadow:0 4px 18px rgba(24,49,59,.04)}
-.attention{background:#fff2d9;border-left:4px solid var(--amber);padding:.85rem 1rem;border-radius:7px;font-size:.9rem}.safe{background:#e8f3f0;border-left:4px solid var(--teal);padding:.85rem 1rem;border-radius:7px;font-size:.9rem}
-.source{display:inline-block;background:#e5f1ee;color:#256a62;padding:.2rem .48rem;border-radius:5px;font-size:.72rem;margin:.15rem .25rem .15rem 0}
-.record-page{background:#fff;border:1px solid #d5dfdc;border-radius:10px;padding:1.35rem 1.5rem;margin:.7rem 0;box-shadow:0 8px 24px rgba(24,49,59,.06);white-space:pre-wrap;line-height:1.65;color:#263c45}
-.step{width:30px;height:30px;border-radius:50%;background:#dcece8;color:#246c64;display:inline-grid;place-items:center;font-weight:700;margin-right:.5rem}
-div[data-testid=stMetric]{background:white;border:1px solid var(--line);padding:1rem;border-radius:13px;box-shadow:0 4px 18px rgba(24,49,59,.04)}
-.stButton>button,.stDownloadButton>button{border-radius:9px;font-weight:650}.stButton>button[kind=primary]{background:var(--teal);border-color:var(--teal)}
-@media(max-width:700px){.block-container{padding:1.2rem}.hero{padding:1.3rem}.hero h1{font-size:1.7rem}}
-</style>
-""", unsafe_allow_html=True)
-
-PAGES = ["Overview", "Visit Readiness", "Symptoms & Timeline", "Document Intelligence", "Records Assistant", "Visit Brief"]
-with st.sidebar:
-    st.markdown("## 🌿 CareBridge")
-    st.caption("Arrive prepared. Leave with clarity.")
-    st.markdown("---")
-    page = st.radio("Your workspace", PAGES, label_visibility="collapsed", key="nav")
-    st.markdown("---")
-    st.markdown("**Maya Thompson**")
-    st.caption("Cardiology visit workspace")
-    st.markdown('<div class="safe"><b>Preparation support only</b><br>CareBridge does not diagnose or recommend treatment.</div>', unsafe_allow_html=True)
-    st.caption("Fictional patient information is used in this public workspace.")
-
-tasks = query("SELECT * FROM preparation_tasks WHERE appointment_id = 1")
-symptoms = query("SELECT * FROM symptoms WHERE appointment_id = 1")
-symptom_responses = query("SELECT id,response_text,created_at FROM symptom_responses WHERE appointment_id = 1 ORDER BY id DESC")
-appointment = query("SELECT * FROM appointments WHERE id = 1").iloc[0]
-medications = query("SELECT name,strength,frequency,status FROM medications WHERE patient_id = 1")
-documents = query("SELECT title,category,organization,citation FROM documents WHERE appointment_id = 1")
-questions = query("SELECT id,question,priority FROM questions WHERE appointment_id = 1 ORDER BY priority DESC, id")
-score = preparation_score(tasks)
-open_tasks = tasks.loc[tasks.status != "complete"]
-
-if page == "Overview":
-    st.markdown('<div class="welcome">Patient visit preparation</div>', unsafe_allow_html=True)
-    st.markdown("# Welcome back, Maya")
-    st.markdown('<p class="lede">Continue preparing for your upcoming cardiology appointment.</p>', unsafe_allow_html=True)
-    st.markdown(f'''<div class="hero"><div class="eyebrow">Next appointment · September 18</div><h1>{appointment.title}</h1><p>{appointment.provider} · 10:30 AM · In person</p><b>{appointment.reason}</b></div>''', unsafe_allow_html=True)
-    a,b,c,d = st.columns(4)
-    a.metric("Visit preparation", f"{score}%", help="Measures completed preparation tasks only")
-    b.metric("Items remaining", len(open_tasks))
-    c.metric("Symptoms added", len(symptoms))
-    d.metric("Questions ready", len(questions))
-    left,right = st.columns([1.45,1], gap="large")
-    with left:
-        st.subheader("What to do next")
-        for row in open_tasks.itertuples():
-            label = "In progress" if row.status == "in_progress" else "Not started"
-            st.markdown(f'<div class="soft-card"><b>{row.title}</b><br><small>{label} · Due {row.due_date}</small></div>', unsafe_allow_html=True)
-        st.button("Continue preparation", type="primary", on_click=lambda: st.session_state.update(nav="Visit Readiness"))
-    with right:
-        st.subheader("Your visit at a glance")
-        st.markdown(f"**Main reason**  \n{appointment.reason}")
-        st.markdown("**Records ready**  \n4 documents organized")
-        st.markdown("**Top priorities**  \n3 questions marked important")
-        st.markdown('<div class="attention"><b>This is a preparation score.</b><br>It does not measure health, urgency, or medical safety.</div>', unsafe_allow_html=True)
-
-elif page == "Visit Readiness":
-    st.markdown('<div class="welcome">Appointment preparation</div>', unsafe_allow_html=True)
-    st.markdown("# Get ready for your visit")
-    st.markdown('<p class="lede">Complete what you can. You may mark an item not applicable if it does not apply to this visit.</p>', unsafe_allow_html=True)
-    progress,details = st.columns([1.5,1], gap="large")
-    with progress:
-        st.progress(score / 100, text=f"{score}% prepared")
-        edited = st.data_editor(
-            tasks[["title", "status", "due_date"]], hide_index=True, width="stretch",
-            disabled=["title", "due_date"],
-            column_config={
-                "title": st.column_config.TextColumn("Preparation item"),
-                "status": st.column_config.SelectboxColumn("Status", options=["not_started", "in_progress", "complete", "not_applicable"]),
-                "due_date": st.column_config.DateColumn("Due"),
-            },
-        )
-        if st.button("Save progress", type="primary"):
-            for idx,row in edited.iterrows():
-                execute("UPDATE preparation_tasks SET status=? WHERE id=?", (row.status, int(tasks.iloc[idx].id)))
-            st.success("Your preparation progress was saved.")
-    with details:
-        st.markdown("### Appointment details")
-        st.markdown(f'<div class="soft-card"><b>{appointment.title}</b><br>{appointment.provider}<br><small>September 18, 2026 · 10:30 AM<br>In person</small></div>', unsafe_allow_html=True)
-        st.markdown("### Before you go")
-        st.markdown("- Bring a photo ID and insurance card\n- Keep your medication list current\n- Bring the questions most important to you")
-
-elif page == "Symptoms & Timeline":
-    st.markdown('<div class="welcome">Your health information</div>', unsafe_allow_html=True)
-    st.markdown("# Symptoms and medications")
-    st.markdown('<p class="lede">Keep the facts in your own words so you can explain what has been happening.</p>', unsafe_allow_html=True)
-    symptom_tab,medicine_tab = st.tabs(["Symptoms", "Medications & allergies"])
-    with symptom_tab:
-        chart_col,list_col = st.columns([1,1], gap="large")
-        with chart_col:
-            st.markdown("### What you have tracked")
-            st.pyplot(symptom_chart(symptoms), width="stretch")
-            st.caption("Severity is patient-reported and does not represent a clinical assessment.")
-        with list_col:
-            st.markdown("### Current entries")
-            for row in symptoms.itertuples():
-                st.markdown(f'<div class="soft-card"><b>{row.symptom}</b> · {row.severity}/10<br><small>Started {row.onset_date} · {row.pattern}</small></div>', unsafe_allow_html=True)
-        st.markdown("### Add what you noticed")
-        if st.session_state.pop("symptom_response_saved", False):
-            st.success("Your response was saved exactly as entered.")
-        response_text = st.text_area("Describe what you noticed in your own words", placeholder="When did it begin? What does it feel like? What makes it better or worse?")
-        if st.button("Save response", type="primary"):
-            if response_text.strip():
-                execute(
-                    "INSERT INTO symptom_responses (appointment_id,response_text) VALUES (?,?)",
-                    (1, response_text),
-                )
-                st.session_state.symptom_response_saved = True
-                st.rerun()
-            else:
-                st.warning("Enter a response before saving.")
-        if not symptom_responses.empty:
-            st.markdown("### Saved responses")
-            for row in symptom_responses.itertuples():
-                st.markdown(
-                    f'<div class="soft-card">{escape(row.response_text)}<br><small>Saved {escape(row.created_at)}</small></div>',
-                    unsafe_allow_html=True,
-                )
-    with medicine_tab:
-        st.markdown("### Current medications")
-        st.dataframe(medications, hide_index=True, width="stretch", column_config={"name":"Medication","strength":"Strength","frequency":"How often","status":"Status"})
-        st.markdown("### Reported allergies")
-        st.markdown('<div class="soft-card"><b>Penicillin</b><br>Reported reaction: rash · Moderate</div><div class="soft-card"><b>Latex</b><br>Reported reaction: skin irritation · Mild</div>', unsafe_allow_html=True)
-        st.markdown('<div class="attention">Do not start, stop, or change medication based on CareBridge. Confirm medication questions with a qualified healthcare professional.</div>', unsafe_allow_html=True)
-
-elif page == "Document Intelligence":
-    st.markdown('<div class="welcome">Document intelligence</div>', unsafe_allow_html=True)
-    st.markdown("# Organize appointment records")
-    st.markdown('<p class="lede">CareBridge suggests a folder for each record. You remain in control of the final category.</p>', unsafe_allow_html=True)
-    for row in documents.itertuples():
-        with st.expander(f"{row.title} · {row.category}"):
-            st.markdown(f'<div class="soft-card"><b>{row.title}</b><br><small>{row.category} · {row.organization}</small><br><span class="source">Source: {row.citation}</span></div>', unsafe_allow_html=True)
-            st.caption("Fictional document metadata for this public patient workspace.")
-            record_text = RECORD_TEXT.get(row.title, "A source preview is not available for this record.")
-            if st.toggle(f"View source — {row.citation}", key=f"preview-{row.Index}"):
-                st.markdown(f'<div class="record-page">{escape(record_text)}</div>', unsafe_allow_html=True)
-                st.download_button(
-                    "Download record",
-                    record_text,
-                    file_name=f"{row.title.lower().replace(' ', '-')}.txt",
-                    mime="text/plain",
-                    key=f"download-record-{row.Index}",
-                )
-    st.markdown("### Add a record")
-    st.button("Use example record", on_click=lambda: st.session_state.update(document_text="Laboratory blood results. Specimen collected August 21. Values include reference ranges and a follow-up instruction."))
-    uploaded = st.file_uploader("Choose a text record", type=["txt"], help="This MVP reads TXT files and does not permanently save uploads.")
-    pasted = st.text_area("Or paste the document text", placeholder="Paste administrative instructions or report text here...", key="document_text")
-    record_text = uploaded.getvalue().decode("utf-8", errors="ignore") if uploaded else pasted
-    if st.button("Review record", type="primary") and record_text:
-        prediction = classify_document_details(record_text)
-        col1,col2 = st.columns(2)
-        col1.metric("Suggested category", prediction["category"])
-        col2.metric("Model confidence", f'{prediction["confidence"]:.0%}')
-        st.progress(prediction["confidence"])
-        st.markdown("**Words that influenced this prediction:** " + (" · ".join(prediction["features"]) or "No strong features found"))
-        st.caption("Confirm the suggested category before using it. Document organization is not a clinical interpretation.")
-
-elif page == "Records Assistant":
-    st.markdown('<div class="welcome">Source-cited record search</div>', unsafe_allow_html=True)
-    st.markdown("# Ask CareBridge about your records")
-    st.markdown('<p class="lede">Answers are grounded in the available documents and show the supporting evidence.</p>', unsafe_allow_html=True)
-    if os.getenv("OPENAI_API_KEY"):
-        st.info("CareBridge creates a grounded response from the records available in this workspace. Supporting sources are always shown.")
+if not visits:
+    step=st.session_state.get("onboarding_step",-1 if current_user else 0)
+    if step==0:
+        marketing_nav()
+        if (st.query_params.get("start")=="1" or st.query_params.get("auth")) and not config.supabase_ready:
+            st.error("Account setup requires SUPABASE_URL and SUPABASE_ANON_KEY. Add them to Streamlit secrets, then restart CareBridge.")
+            st.query_params.clear()
+        hero_left,hero_right=st.columns([1.02,.98],gap="large")
+        with hero_left: hero_copy()
+        with hero_right: product_preview()
+        bento_features(); records_story(); workflow_story(); responsible_ai(); final_cta()
+    elif step==-1:
+        wordmark(); page_header("Your workspace","Prepare for your first visit","No visits exist in your account yet. Create one to open the private preparation workspace.")
+        empty_state("V","No visits yet","Create your first visit using appointment information you enter.")
+        if st.button("Create Visit",type="primary"): st.session_state.onboarding_step=1; refresh()
+    elif step==1:
+        wordmark()
+        st.markdown('<div class="cb-form-shell"><div class="cb-step">Step 1 of 2</div><div class="cb-step-track"><div class="cb-step-fill" style="width:50%"></div></div><h1>Tell us about your upcoming visit</h1><p class="cb-lede">Start with the essentials. You can organize everything else inside the workspace.</p></div>',unsafe_allow_html=True)
+        with st.form("visit-step-one"):
+            a,b=st.columns(2); appt_date=a.date_input("Appointment date *",min_value=date.today()); appt_time=b.time_input("Appointment time *",value=time(9,0))
+            provider=st.text_input("Provider or clinic *",max_chars=120); specialty=st.text_input("Appointment type or specialty *",max_chars=120); reason=st.text_area("Main reason for visit *",max_chars=1000)
+            back,forward=st.columns(2); back_clicked=back.form_submit_button("Back",width="stretch"); submitted=forward.form_submit_button("Continue",type="primary",width="stretch")
+        if back_clicked: st.session_state.onboarding_step=-1 if current_user else 0; refresh()
+        if submitted:
+            if not all(x.strip() for x in (provider,specialty,reason)): st.error("Complete all required fields before continuing.")
+            else: st.session_state.visit_draft={"appointment_date":str(appt_date),"appointment_time":appt_time.strftime("%H:%M"),"provider":provider.strip(),"specialty":specialty.strip(),"reason":reason.strip()}; st.session_state.onboarding_step=2; refresh()
     else:
-        st.info("CareBridge is using local record search. Source search and citations remain available while AI-assisted answers are unavailable.")
-    left,right = st.columns([1,1], gap="large")
-    with left:
-        st.markdown("### Questions for your provider")
-        for row in questions.itertuples():
-            st.checkbox(row.question, value=bool(row.priority), key=f"question-{row.id}", help="Checked questions are marked as priorities")
-        new_question = st.text_input("Add another question", placeholder="What do you want to remember to ask?")
-        if st.button("Add to my list") and new_question:
-            execute("INSERT INTO questions (appointment_id,question,priority) VALUES (1,?,0)", (new_question,))
-            st.success("Question added to your list.")
-    with right:
-        st.markdown("### Suggested questions")
-        suggestion_cols = st.columns(2)
-        suggestions = ["Which record mentions my follow-up date?", "What preparation instructions are available?"]
-        for index,suggestion in enumerate(suggestions):
-            suggestion_cols[index].button(suggestion, key=f"suggest-{index}", on_click=lambda value=suggestion: st.session_state.__setitem__("record-question", value), width="stretch")
-        question = st.text_input("What would you like to find?", placeholder="Which record mentions my follow-up date?", key="record-question")
-        if st.button("Find the answer", type="primary") and question:
-            result = answer(question, load_record_chunks(ROOT / "sample_records"))
-            st.markdown(f'<div class="soft-card">{result["answer"]}</div>', unsafe_allow_html=True)
-            if result["evidence"]:
-                st.markdown("#### Supporting evidence")
-                for item in result["evidence"]:
-                    st.markdown(f'<div class="soft-card"><b>{item["source"]}</b> · {item["section"]}<br><span class="source">Retrieval score: {item["score"]:.0%}</span><br><small>{item["excerpt"]}</small></div>', unsafe_allow_html=True)
-            else:
-                st.caption("No source was cited because sufficient evidence was not found.")
-        st.markdown('<div class="safe"><b>What CareBridge can help with</b><br>Finding dates, instructions, prepared questions, and missing records. It cannot diagnose or recommend treatment.</div>', unsafe_allow_html=True)
+        wordmark()
+        st.markdown('<div class="cb-form-shell"><div class="cb-step">Step 2 of 2</div><div class="cb-step-track"><div class="cb-step-fill" style="width:100%"></div></div><h1>Add the finishing details</h1><p class="cb-lede">Both fields are optional.</p></div>',unsafe_allow_html=True)
+        with st.form("visit-step-two"):
+            location=st.text_input("Location (optional)"); notes=st.text_area("Preparation notes (optional)"); back,finish=st.columns(2); back_clicked=back.form_submit_button("Back",width="stretch"); submitted=finish.form_submit_button("Create Visit Workspace",type="primary",width="stretch")
+        if back_clicked: st.session_state.onboarding_step=1; refresh()
+        if submitted:
+            draft={**st.session_state.visit_draft,"location":location.strip(),"notes":notes.strip()}; new_id=store.create_visit(draft); st.session_state.active_visit_id=str(new_id); st.session_state.nav="Overview"; st.session_state.onboarding_step=-1; st.toast("Visit created · Your workspace is ready"); refresh()
+    st.stop()
+
+if st.session_state.pop("nav_target",None): st.session_state.nav="Overview"
+with st.sidebar:
+    wordmark()
+    selected=st.selectbox("Active visit",visits,index=next((i for i,v in enumerate(visits) if str(v["id"])==str(st.session_state.active_visit_id)),0),format_func=lambda v:f"{v['appointment_date']} · {v['provider']}")
+    if str(selected["id"])!=str(st.session_state.active_visit_id): st.session_state.active_visit_id=str(selected["id"]); store.set_active_visit(str(selected["id"])); refresh()
+    if st.button("Create another visit",width="stretch"): st.session_state.creating_visit=True
+    page=st.radio("Workspace",["Overview","Visit Readiness","Symptoms","Medications","Records","Records Assistant","Questions","Visit Brief"],label_visibility="collapsed",key="nav")
+    st.markdown("---"); st.caption("Privacy"); st.caption("About CareBridge")
+    if not config.local_mode:
+        st.caption(current_user.email)
+        if st.button("Sign Out",width="stretch"):
+            auth.sign_out();
+            for key in list(st.session_state.keys()): del st.session_state[key]
+            st.query_params.clear(); refresh()
+    st.markdown('<div class="cb-privacy">Preparation and communication support only. CareBridge does not diagnose or recommend treatment.</div>',unsafe_allow_html=True)
+
+if st.session_state.get("creating_visit"): create_visit_dialog()
+visit=store.get_visit(st.session_state.active_visit_id); tasks=table("preparation_tasks")
+score=round(100*sum(t["completed"] for t in tasks)/len(tasks)) if tasks else 0
+topbar(visit,score)
+
+if page=="Overview":
+    page_header("Workspace overview","Your upcoming visit","Everything you have prepared, organized around this appointment.")
+    st.markdown(f'<div class="cb-card"><span class="cb-pill">Upcoming</span><div class="cb-card-value">{escape(visit["specialty"])}</div><div class="cb-card-copy">{escape(visit["appointment_date"])} at {escape(visit["appointment_time"])} · {escape(visit["provider"])}</div><p>{escape(visit["reason"])}</p></div>',unsafe_allow_html=True)
+    symptoms,meds,docs,questions=map(table,("symptoms","medications","documents","questions")); complete=sum(t["completed"] for t in tasks)
+    st.markdown("<br>",unsafe_allow_html=True); progress_card(score,complete,len(tasks)); section_header("Your visit at a glance","Each area reflects information you have actually saved.")
+    cols=st.columns(4)
+    for col,label,data,zero in zip(cols,["Symptoms","Medications","Records","Questions"],[symptoms,meds,docs,questions],["None added","None recorded","None uploaded","None prepared"]):
+        with col: summary_card(label,len(data),zero)
+    pending=[t["title"] for t in tasks if not t["completed"]]; section_header("Continue preparing","Your next step is based on the readiness checklist.")
+    if pending: st.markdown(f'<div class="cb-card"><span class="cb-pill pending">Next best action</span><div class="cb-card-value" style="font-size:1.3rem">{escape(pending[0])}</div><div class="cb-card-copy">Open Visit Readiness to complete this item or add a note.</div></div>',unsafe_allow_html=True)
+    else: st.success("All preparation checklist items are complete.",icon="✓")
+
+elif page=="Visit Readiness":
+    page_header("Preparation checklist","Visit Readiness","Mark items complete or reopen them. Notes and progress are saved to this visit."); progress_card(score,sum(t["completed"] for t in tasks),len(tasks))
+    groups={"Appointment":tasks[:1],"Health information":tasks[3:6],"Records":tasks[1:3]+tasks[6:7],"Visit planning":tasks[7:]}
+    for group,items in groups.items():
+        section_header(group)
+        for task in items:
+            with st.container(border=True):
+                c1,c2=st.columns([1.1,1]); done=c1.checkbox(task["title"],value=bool(task["completed"]),key=f"t{task['id']}"); notes=c2.text_input("Optional note",task["notes"],key=f"tn{task['id']}",placeholder="Add a note")
+                if done!=bool(task["completed"]) or notes!=task["notes"]: store.update("preparation_tasks",task["id"],{"completed":bool(done),"notes":notes})
+
+elif page=="Symptoms":
+    page_header("Health information","Symptoms & Timeline","Document what you want to remember to discuss with your provider. Your wording is preserved."); symptoms=table("symptoms")
+    if not symptoms: empty_state("S","No symptoms added yet","Add symptoms you want to remember to discuss during your appointment.")
+    for x in symptoms:
+        severity=f'{x["severity"]} / 10' if x.get("severity") is not None else "Not entered"
+        st.markdown(f'<div class="cb-card"><div class="cb-card-title">{escape(x["name"])}</div><div class="cb-card-copy">Started: {escape(x.get("onset") or "Not entered")} · Patient-reported severity: {severity} · Frequency: {escape(x.get("frequency") or "Not entered")}</div></div>',unsafe_allow_html=True)
+        with st.expander("Edit symptom details"):
+            edit_name=st.text_input("Symptom",x["name"],key=f"sn{x['id']}"); edit_onset=st.text_input("Onset",x.get("onset") or "",key=f"so{x['id']}"); edit_description=st.text_area("Description in your own words",x.get("description") or "",key=f"sd{x['id']}"); c1,c2=st.columns(2)
+            if c1.button("Save changes",key=f"ss{x['id']}") and edit_name.strip(): store.update("symptoms",x["id"],{"name":edit_name.strip(),"onset":edit_onset.strip(),"description":edit_description}); refresh()
+            if c2.button("Delete symptom",key=f"ds{x['id']}"): store.delete("symptoms",x["id"]); refresh()
+    section_header("Add a symptom","Start with the essentials; additional detail is optional.")
+    with st.form("symptom"):
+        a,b=st.columns(2); name=a.text_input("Symptom or short description *"); onset=b.text_input("Onset date or approximate onset"); severity=st.slider("Patient-reported severity (optional)",0,10,value=None)
+        with st.expander("Add more details"): frequency=st.text_input("Frequency"); pattern=st.text_input("Pattern"); triggers=st.text_input("Triggers you noticed"); relief=st.text_input("Relieving factors you noticed"); description=st.text_area("Description in your own words")
+        submitted=st.form_submit_button("Add symptom",type="primary")
+    if submitted:
+        if not name.strip(): st.error("Enter a symptom description.")
+        else: store.insert("symptoms",{"visit_id":visit["id"],"name":name.strip(),"onset":onset.strip(),"severity":severity,"frequency":frequency.strip(),"pattern":pattern.strip(),"triggers":triggers.strip(),"relief":relief.strip(),"description":description}); st.toast("Symptom saved"); refresh()
+
+elif page=="Medications":
+    page_header("Health information","Medications & Allergies","Keep an accurate list in your own words. CareBridge does not recommend medication or dosage changes.")
+    a,b=st.columns(2,gap="large")
+    with a:
+        section_header("Medications"); meds=table("medications")
+        if not meds: empty_state("M","No medications recorded","Add medication information you want available for the visit.")
+        for x in meds:
+            st.markdown(f'<div class="cb-card"><div class="cb-card-title">{escape(x["name"])}</div><div class="cb-card-copy">{escape(x.get("dose") or "Dose not entered")} · {escape(x.get("frequency") or "Frequency not entered")}</div></div>',unsafe_allow_html=True)
+            with st.expander("Edit medication"):
+                ename=st.text_input("Medication name",x["name"],key=f"emn{x['id']}"); edose=st.text_input("Dose",x.get("dose") or "",key=f"emd{x['id']}"); efreq=st.text_input("Frequency",x.get("frequency") or "",key=f"emf{x['id']}"); c1,c2=st.columns(2)
+                if c1.button("Save changes",key=f"sm{x['id']}") and ename.strip(): store.update("medications",x["id"],{"name":ename.strip(),"dose":edose,"frequency":efreq}); refresh()
+                if c2.button("Delete medication",key=f"dm{x['id']}"): store.delete("medications",x["id"]); refresh()
+        with st.expander("Add medication",expanded=not meds):
+            with st.form("med"): name=st.text_input("Medication name *"); dose=st.text_input("Dose as entered"); freq=st.text_input("Frequency"); notes=st.text_input("Notes"); add=st.form_submit_button("Save medication",type="primary")
+            if add and name.strip(): store.insert("medications",{"visit_id":visit["id"],"name":name.strip(),"dose":dose,"frequency":freq,"notes":notes}); st.toast("Medication saved"); refresh()
+    with b:
+        section_header("Reported Allergies"); allergies=table("allergies")
+        if not allergies: empty_state("A","No allergies recorded","Add allergies and reported reactions as you understand them.")
+        for x in allergies:
+            st.markdown(f'<div class="cb-card"><div class="cb-card-title">{escape(x["allergy"])}</div><div class="cb-card-copy">Reported reaction: {escape(x.get("reaction") or "Not entered")}</div></div>',unsafe_allow_html=True)
+            with st.expander("Edit allergy"):
+                eallergy=st.text_input("Allergy",x["allergy"],key=f"ean{x['id']}"); ereaction=st.text_input("Reported reaction",x.get("reaction") or "",key=f"ear{x['id']}"); c1,c2=st.columns(2)
+                if c1.button("Save changes",key=f"sa{x['id']}") and eallergy.strip(): store.update("allergies",x["id"],{"allergy":eallergy.strip(),"reaction":ereaction}); refresh()
+                if c2.button("Delete allergy",key=f"da{x['id']}"): store.delete("allergies",x["id"]); refresh()
+        with st.expander("Add allergy",expanded=not allergies):
+            with st.form("allergy"): allergy=st.text_input("Allergy *"); reaction=st.text_input("Reported reaction"); anotes=st.text_input("Notes"); adda=st.form_submit_button("Save allergy",type="primary")
+            if adda and allergy.strip(): store.insert("allergies",{"visit_id":visit["id"],"allergy":allergy.strip(),"reaction":reaction,"notes":anotes}); st.toast("Allergy saved"); refresh()
+
+elif page=="Records":
+    page_header("Document workspace","Your Records","Upload and organize the records you want available while preparing for your visit."); docs=table("documents")
+    st.markdown('<div class="cb-empty"><div class="cb-empty-icon">PDF</div><div class="cb-empty-title">Drop records here or browse files</div><div class="cb-empty-copy">PDF and TXT supported · maximum 10 MB · selectable text required</div></div>',unsafe_allow_html=True)
+    tab1,tab2=st.tabs(["Upload a file","Add text manually"])
+    with tab1: uploaded=st.file_uploader("Choose a PDF or TXT record",type=["txt","pdf"],label_visibility="collapsed"); upload_title=st.text_input("Record title",key="ut"); save_upload=st.button("Add record",type="primary")
+    with tab2: manual_title=st.text_input("Record title",key="mt"); manual_text=st.text_area("Record text"); save_manual=st.button("Add text record",type="primary")
+    if save_upload and uploaded:
+        try:
+            with st.status("Adding record...",expanded=False) as status:
+                status.update(label="Extracting readable text..."); text,mime=extract_text(uploaded.getvalue(),uploaded.name)
+                status.update(label="Organizing record..."); title=upload_title.strip() or uploaded.name; pred=classify_document_details(text); store.upload_document(visit["id"],title,uploaded.name,mime,uploaded.getvalue(),text,pred); status.update(label="Record ready",state="complete")
+            st.toast("Record added · Text extraction complete"); refresh()
+        except DocumentError as exc: st.error(str(exc))
+    if save_manual:
+        if not manual_title.strip() or not manual_text.strip(): st.error("Enter both a title and record text.")
+        else: pred=classify_document_details(manual_text); filename=f'{manual_title.strip()}.txt'; store.upload_document(visit["id"],manual_title.strip(),filename,"text/plain",manual_text.strip().encode(),manual_text.strip(),pred); st.toast("Record added successfully"); refresh()
+    section_header("Saved records")
+    if not docs: empty_state("R","No records added yet","Add records you want available while preparing for your appointment.")
+    categories=["Referral","Lab result","Insurance","Visit note","Imaging","Instructions","Other"]
+    for x in docs:
+        status="Category confirmed" if x["category_confirmed"] else "Review category"
+        st.markdown(f'<div class="cb-file"><div class="cb-file-icon">{("PDF" if x.get("mime_type")=="application/pdf" else "TXT")}</div><div class="cb-file-main"><div class="cb-file-name">{escape(x["title"])}</div><div class="cb-file-meta">{escape(x.get("category") or "Uncategorized")} · Text extracted successfully · {escape(x.get("created_at") or "")}</div></div><span class="cb-pill">{status}</span></div>',unsafe_allow_html=True)
+        with st.expander("View record & document intelligence"):
+            main,intel=st.columns([1.5,1],gap="large")
+            with main:
+                st.markdown("#### Extracted content"); st.text_area("Record content",x["extracted_text"][:10000],height=280,disabled=True,key=f"text{x['id']}")
+            with intel:
+                explanation=classify_document_details(x["extracted_text"])
+                terms=" · ".join(explanation["features"]) or "No strong category terms"
+                st.markdown("#### Document Intelligence"); renamed=st.text_input("Record title",x["title"],key=f"rn{x['id']}"); st.markdown(f'<div class="cb-card"><div class="cb-card-copy">Suggested category</div><div class="cb-card-title">{escape(x.get("suggested_category") or "Uncertain")}</div><span class="cb-pill">{x.get("confidence") or 0:.0%} classifier confidence</span><div class="cb-card-copy" style="margin-top:.7rem"><b>Influential terms</b><br>{escape(terms)}</div></div>',unsafe_allow_html=True); st.caption("This describes document routing, not medical confidence.")
+                cat=st.selectbox("Confirm or change category",categories,index=categories.index(x["category"]) if x.get("category") in categories else len(categories)-1,key=f"cat{x['id']}")
+                if st.button("Save document details",key=f"cc{x['id']}") and renamed.strip(): store.update("documents",x["id"],{"title":renamed.strip(),"category":cat,"category_confirmed":True}); refresh()
+                if st.button("Delete record",key=f"dd{x['id']}"): store.delete("documents",x["id"]); refresh()
+
+elif page=="Records Assistant":
+    page_header("Grounded record search","Ask Your Records","Ask questions about information contained in the records you have added. Answers always show their evidence."); docs=table("documents")
+    if not docs: empty_state("Q","No records available","Add at least one record before asking questions about it.")
+    else:
+        st.markdown('<div class="cb-card"><div class="cb-card-title">Evidence-first answers</div><div class="cb-card-copy">Local retrieval selects relevant excerpts first. Groq may compose from only those excerpts; it never receives your full database or all records.</div></div>',unsafe_allow_html=True)
+        chips=st.columns(3)
+        suggestions=["Where is the appointment date mentioned?","Which record contains referral information?","What medications are mentioned?"]
+        for col,suggestion in zip(chips,suggestions):
+            if col.button(suggestion,key=f"chip-{suggestion}",width="stretch"): st.session_state.record_question=suggestion
+        question=st.text_input("Ask about your records...",key="record_question")
+        if st.button("Search my records",type="primary") and question.strip():
+            chunks=[Chunk(p.strip(),d["title"],f"passage {i+1}") for d in docs for i,p in enumerate(d["extracted_text"].split("\n\n")) if len(p.strip())>15]
+            with st.status("Searching your records...",expanded=False) as status:
+                result=answer(question,chunks); status.update(label="Evidence retrieved",state="complete")
+            st.markdown(f'<div class="cb-message-user">{escape(question)}</div><br><div class="cb-message-ai"><div class="cb-kicker">CareBridge</div>{escape(result["answer"])}</div>',unsafe_allow_html=True)
+            if result["evidence"]: section_header("Sources","Expand each source to inspect the retrieved evidence.")
+            for e in result["evidence"]:
+                level="High" if e["score"]>=.45 else "Moderate" if e["score"]>=.2 else "Low"
+                with st.expander(f'{e["source"]} · Relevance: {level}'):
+                    st.markdown(f'<div class="cb-evidence"><span class="cb-pill">{escape(e["section"])}</span><blockquote>{escape(e["excerpt"])}</blockquote><div class="cb-fine">Retrieval score: {e["score"]:.0%}</div></div>',unsafe_allow_html=True)
+
+elif page=="Questions":
+    page_header("Visit planning","Questions for Your Provider","Build a focused list you can bring into the appointment."); questions=table("questions")
+    if not questions: empty_state("?","No questions prepared yet","Add questions you want to remember during your appointment.")
+    for index,x in enumerate(questions,1):
+        st.markdown(f'<div class="cb-card"><span class="cb-pill">{index}</span> '+('<span class="cb-pill pending">Priority</span>' if x["priority"] else '')+'</div>',unsafe_allow_html=True)
+        c1,c2,c3,c4=st.columns([4,1,1,1]); edited_q=c1.text_input("Question",x["question"],key=f"eq{x['id']}",label_visibility="collapsed")
+        if c2.button("Save",key=f"sq{x['id']}") and edited_q.strip(): store.update("questions",x["id"],{"question":edited_q.strip()}); refresh()
+        if c3.button("Priority",key=f"pq{x['id']}"): store.update("questions",x["id"],{"priority":not bool(x["priority"])}); refresh()
+        if c4.button("Delete",key=f"dq{x['id']}"): store.delete("questions",x["id"]); refresh()
+        up,down=st.columns(2)
+        up.button("Move up",key=f"uq{x['id']}",disabled=index==1,on_click=move_question,args=(questions,index-1,-1),width="stretch")
+        down.button("Move down",key=f"nq{x['id']}",disabled=index==len(questions),on_click=move_question,args=(questions,index-1,1),width="stretch")
+    with st.expander("Add question",expanded=not questions):
+        with st.form("question"): q=st.text_input("Question *"); priority=st.checkbox("Mark as priority"); addq=st.form_submit_button("Save question",type="primary")
+        if addq and q.strip(): store.insert("questions",{"visit_id":visit["id"],"question":q.strip(),"priority":bool(priority),"position":len(questions)}); st.toast("Question saved"); refresh()
 
 else:
-    st.markdown('<div class="welcome">Review and share</div>', unsafe_allow_html=True)
-    st.markdown("# Your visit brief")
-    st.markdown('<p class="lede">A concise summary you control. Review every section before downloading or sharing.</p>', unsafe_allow_html=True)
-    st.markdown('<div class="attention"><b>Patient-prepared and not independently verified.</b><br>This packet does not replace clinic intake or professional medical review.</div>', unsafe_allow_html=True)
-    st.markdown("### Appointment")
-    st.markdown(f'<div class="soft-card"><b>{appointment.title}</b> with {appointment.provider}<br>September 18, 2026 at 10:30 AM · In person<br><br><b>Main reason:</b> {appointment.reason}</div>', unsafe_allow_html=True)
-    st.markdown("### Symptoms")
-    st.dataframe(symptoms[["symptom","onset_date","severity","pattern"]], hide_index=True, width="stretch", column_config={"symptom":"Symptom","onset_date":"Started","severity":"Severity (0–10)","pattern":"Pattern"})
-    st.markdown("### Current medications")
-    st.dataframe(medications[["name","strength","frequency"]], hide_index=True, width="stretch", column_config={"name":"Medication","strength":"Strength","frequency":"How often"})
-    st.markdown("### Priority questions")
-    for row in questions.loc[questions.priority == 1].itertuples():
-        st.markdown(f"- {row.question}")
-    approved = st.checkbox("I reviewed this brief and confirm it reflects the information I entered")
-    pdf = build_visit_pdf(appointment, symptoms, medications, questions)
-    csv_data = pd.concat([symptoms.assign(section="symptoms"), medications.assign(section="medications")], ignore_index=True).to_csv(index=False)
-    download_a,download_b = st.columns(2)
-    download_a.download_button("Download visit brief (PDF)", pdf, "carebridge-visit-brief.pdf", mime="application/pdf", disabled=not approved, type="primary", width="stretch")
-    download_b.download_button("Download summary data (CSV)", csv_data, "carebridge-summary-data.csv", mime="text/csv", disabled=not approved, width="stretch")
+    page_header("Review and export","Visit Brief","Review the information you entered before creating a portable visit brief."); symptoms,meds,allergies,docs,questions=map(table,("symptoms","medications","allergies","documents","questions"))
+    def items(data,key): return "".join(f'<li>{escape(str(x[key]))}</li>' for x in data) or '<li class="cb-card-copy">Nothing entered</li>'
+    st.markdown(f'''<div class="cb-paper"><div class="cb-paper-brand">CareBridge · Patient-prepared visit brief</div><h1>{escape(visit["specialty"])}</h1><div class="cb-card-copy">{escape(visit["appointment_date"])} at {escape(visit["appointment_time"])} · {escape(visit["provider"])}</div><h2>Appointment</h2><p><b>Main concern</b><br>{escape(visit["reason"])}</p><h2>Symptoms</h2><ul>{items(symptoms,"name")}</ul><h2>Medications</h2><ul>{items(meds,"name")}</ul><h2>Allergies</h2><ul>{items(allergies,"allergy")}</ul><h2>Relevant records</h2><ul>{items(docs,"title")}</ul><h2>Questions for provider</h2><ul>{items(questions,"question")}</ul></div>''',unsafe_allow_html=True)
+    section_header("Review confirmation"); progress_card(score,sum(t["completed"] for t in tasks),len(tasks)); approved=st.checkbox("I reviewed this brief and confirm that it reflects the information I entered.",value=bool(visit["brief_confirmed"]))
+    if approved!=bool(visit["brief_confirmed"]): store.confirm_brief(visit["id"],approved)
+    if approved:
+        pdf=build_visit_pdf(visit,symptoms,meds,allergies,docs,questions); payload=json.dumps({"visit":visit,"symptoms":symptoms,"medications":meds,"allergies":allergies,"documents":[{k:v for k,v in d.items() if k!="extracted_text"} for d in docs],"questions":questions},indent=2); a,b=st.columns(2); a.download_button("Download Visit Brief",pdf,"carebridge-visit-brief.pdf","application/pdf",type="primary",width="stretch"); b.download_button("Download Structured Data",payload,"carebridge-visit-data.json","application/json",width="stretch")
+    else: st.info("Review and confirm the brief to enable downloads.")
