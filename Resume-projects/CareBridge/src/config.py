@@ -9,7 +9,13 @@ class AppConfig:
     local_mode: bool
 
     @property
-    def supabase_ready(self) -> bool: return bool(self.supabase_url and self.supabase_anon_key)
+    def supabase_ready(self) -> bool:
+        return bool(
+            self.supabase_url
+            and self.supabase_anon_key
+            and "your-project-id" not in self.supabase_url.lower()
+            and self.supabase_url.lower().startswith("https://")
+        )
 
 def load_config(secrets=None) -> AppConfig:
     def value(name: str) -> str | None:

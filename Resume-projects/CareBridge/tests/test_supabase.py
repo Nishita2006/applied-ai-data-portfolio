@@ -49,9 +49,14 @@ class Client:
     def table(self,name): return Query(self,name)
 
 def test_signup_validation():
-    validate_signup("person@example.com","password1","password1")
-    with pytest.raises(AuthError): validate_signup("bad","password1","password1")
-    with pytest.raises(AuthError): validate_signup("person@example.com","password1","different")
+    validate_signup("person@example.com","password1","password1","Person")
+    with pytest.raises(AuthError,match="first name"): validate_signup("person@example.com","password1","password1","")
+    with pytest.raises(AuthError): validate_signup("bad","password1","password1","Person")
+    with pytest.raises(AuthError): validate_signup("person@example.com","password1","different","Person")
+
+def test_placeholder_supabase_url_is_not_ready(monkeypatch):
+    monkeypatch.setenv("SUPABASE_URL","https://your-project-id.supabase.co"); monkeypatch.setenv("SUPABASE_ANON_KEY","anon")
+    assert not load_config({}).supabase_ready
 
 def test_auth_errors_are_sanitized():
     client=SimpleNamespace(auth=SimpleNamespace(sign_in_with_password=lambda payload: (_ for _ in ()).throw(RuntimeError("invalid login credentials internal trace"))))

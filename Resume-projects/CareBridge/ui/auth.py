@@ -12,10 +12,10 @@ def auth_screen(auth: SupabaseAuth,mode: str="signin"):
         if mode=="signup":
             st.markdown('<div class="auth-head"><div class="cb-step">Create account</div><h1>Start preparing</h1><p>Your account keeps visits separated and available when you return.</p></div>',unsafe_allow_html=True)
             with st.form("signup"):
-                first=st.text_input("First name (optional)",max_chars=80); email=st.text_input("Email"); password=st.text_input("Password",type="password"); confirm=st.text_input("Confirm password",type="password"); submitted=st.form_submit_button("Create Account",type="primary",width="stretch")
+                first=st.text_input("First name",max_chars=80); email=st.text_input("Email"); password=st.text_input("Password",type="password"); confirm=st.text_input("Confirm password",type="password"); submitted=st.form_submit_button("Create Account",type="primary",width="stretch")
             if submitted:
                 try:
-                    validate_signup(email,password,confirm); response=auth.sign_up(email,password,first); user=auth.user(response)
+                    validate_signup(email,password,confirm,first); response=auth.sign_up(email,password,first); user=auth.user(response)
                     if getattr(response,"session",None) and user: return ("authenticated",user)
                     st.success("Account created. Check your email to confirm the account, then sign in.")
                 except AuthError as exc: st.error(str(exc))
