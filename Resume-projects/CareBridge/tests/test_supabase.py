@@ -3,7 +3,7 @@ from types import SimpleNamespace
 import pytest
 from src.auth import AuthError, SupabaseAuth, validate_signup
 from src.config import load_config
-from src.store import SupabaseStore
+from src.store import SupabaseStore, friendly_data_error
 from src.rag import Chunk, answer
 
 class Query:
@@ -57,6 +57,12 @@ def test_signup_validation():
 def test_placeholder_supabase_url_is_not_ready(monkeypatch):
     monkeypatch.setenv("SUPABASE_URL","https://your-project-id.supabase.co"); monkeypatch.setenv("SUPABASE_ANON_KEY","anon")
     assert not load_config({}).supabase_ready
+
+def test_missing_supabase_schema_has_actionable_error():
+    error=RuntimeError("PGRST205 Could not find the table public.visits in the schema cache")
+    message=friendly_data_error(error)
+    assert "sql/supabase_schema.sql" in message
+    assert "not been installed" in message
 
 def test_auth_errors_are_sanitized():
     client=SimpleNamespace(auth=SimpleNamespace(sign_in_with_password=lambda payload: (_ for _ in ()).throw(RuntimeError("invalid login credentials internal trace"))))

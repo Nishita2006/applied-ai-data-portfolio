@@ -10,7 +10,7 @@ from src.documents import DocumentError, extract_text
 from src.export import build_visit_pdf
 from src.ml import classify_document_details
 from src.rag import Chunk, answer
-from src.store import LocalStore, SupabaseStore
+from src.store import LocalStore, SupabaseStore, friendly_data_error
 from ui.auth import auth_screen
 from ui.components import bento_features, empty_state, final_cta, hero_copy, marketing_nav, page_header, product_preview, progress_card, records_story, responsible_ai, section_header, summary_card, topbar, wordmark, workflow_story
 from ui.styles import apply_styles
@@ -70,7 +70,15 @@ else:
 if not current_user:
     visits=[]
 else:
-    visits=store.list_visits()
+    try: visits=store.list_visits()
+    except Exception as exc:
+        st.error(friendly_data_error(exc))
+        st.info("Setup path: Supabase Dashboard → SQL Editor → New query → paste the complete sql/supabase_schema.sql file → Run.")
+        if st.button("Sign Out",width="stretch"):
+            if auth: auth.sign_out()
+            for key in list(st.session_state.keys()): del st.session_state[key]
+            st.query_params.clear(); refresh()
+        st.stop()
 
 if current_user and visits:
     valid_ids={str(v["id"]) for v in visits}

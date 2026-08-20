@@ -7,6 +7,14 @@ from src.database import DEFAULT_TASKS, create_visit as sqlite_create, delete_it
 
 TABLE_MAP={"preparation_tasks":"readiness_tasks","questions":"provider_questions"}
 
+def friendly_data_error(exc: Exception) -> str:
+    text=str(exc).lower()
+    if "pgrst205" in text or "schema cache" in text or "could not find the table" in text:
+        return "CareBridge's database tables have not been installed in this Supabase project. Run sql/supabase_schema.sql in the Supabase SQL Editor, then reload the app."
+    if "permission denied" in text or "row-level security" in text:
+        return "CareBridge cannot access your workspace because the Supabase security policies are missing or incomplete. Reapply sql/supabase_schema.sql, then reload the app."
+    return "CareBridge could not load your workspace from Supabase. Check the app logs and verify that the database schema was applied successfully."
+
 class LocalStore:
     def __init__(self,path: Path,user_id: str="local"): self.path=path; self.user_id=user_id
     def list_visits(self): return rows("SELECT * FROM visits ORDER BY appointment_date,appointment_time",path=self.path)
