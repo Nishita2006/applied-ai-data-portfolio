@@ -46,16 +46,13 @@ For isolated SQLite development without authentication, set `CAREBRIDGE_LOCAL_MO
 
 1. Create a Supabase project.
 2. Run `sql/supabase_schema.sql` once in the Supabase SQL Editor.
-3. In Supabase Authentication, keep email/password enabled and configure the Site URL and redirect URLs for the deployed Streamlit address.
+3. In Supabase Authentication providers, keep email/password enabled and turn **Confirm email** off so account creation signs the user in immediately.
 4. Add the following Streamlit secrets:
 
 ```toml
 SUPABASE_URL = "https://your-project.supabase.co"
 SUPABASE_ANON_KEY = "your publishable or anon key"
-CAREBRIDGE_APP_URL = "https://carebridge-ai.streamlit.app"
 ```
-
-Set the same CareBridge URL as the Supabase Authentication Site URL and add it to the allowed Redirect URLs. This prevents confirmation emails from sending users to a stale localhost address.
 
 Never use a Supabase service-role key in this application. Without Supabase configuration, the public marketing page remains visible but account and workspace creation are disabled.
 

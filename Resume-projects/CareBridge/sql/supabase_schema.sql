@@ -7,6 +7,16 @@ create table if not exists public.profiles (
   active_visit_id uuid,
   created_at timestamptz not null default now(), updated_at timestamptz not null default now()
 );
+update public.profiles set first_name='User-'||left(user_id::text,8) where first_name is null or btrim(first_name)='';
+alter table public.profiles alter column first_name set not null;
+create unique index if not exists profiles_first_name_unique on public.profiles(lower(btrim(first_name)));
+
+create or replace function public.is_first_name_available(candidate text) returns boolean language sql stable security definer set search_path='' as $$
+  select length(btrim(candidate)) between 1 and 80
+    and not exists(select 1 from public.profiles where lower(btrim(first_name))=lower(btrim(candidate)));
+$$;
+revoke all on function public.is_first_name_available(text) from public;
+grant execute on function public.is_first_name_available(text) to anon,authenticated;
 create table if not exists public.visits (
   id uuid primary key default gen_random_uuid(), user_id uuid not null references auth.users(id) on delete cascade,
   appointment_date date not null, appointment_time time not null, provider text not null, specialty text not null,

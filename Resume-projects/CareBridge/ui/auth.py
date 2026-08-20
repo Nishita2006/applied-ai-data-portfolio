@@ -17,12 +17,11 @@ def auth_screen(auth: SupabaseAuth,mode: str="signin"):
                 try:
                     validate_signup(email,password,confirm,first); response=auth.sign_up(email,password,first); user=auth.user(response)
                     if getattr(response,"session",None) and user: return ("authenticated",user)
-                    st.success("Account created. Check your email to confirm the account, then sign in.")
+                    st.error("The account was created, but automatic sign-in is disabled because Supabase still requires email confirmation. Turn off Confirm email in Supabase Authentication settings, then create the account again.")
                 except AuthError as exc: st.error(str(exc))
             if st.button("Already have an account? Sign In",width="stretch"): return ("mode","signin")
         else:
             st.markdown('<div class="auth-head"><div class="cb-step">Welcome back</div><h1>Sign in to CareBridge</h1><p>Continue preparing your saved visits.</p></div>',unsafe_allow_html=True)
-            if st.query_params.get("confirmed")=="1": st.success("Email verified. Sign in with the password you created.")
             with st.form("signin"):
                 email=st.text_input("Email"); password=st.text_input("Password",type="password"); submitted=st.form_submit_button("Sign In",type="primary",width="stretch")
             if submitted:
@@ -31,12 +30,5 @@ def auth_screen(auth: SupabaseAuth,mode: str="signin"):
                     if user: return ("authenticated",user)
                     st.error("CareBridge could not restore the authenticated user.")
                 except AuthError as exc: st.error(str(exc))
-            with st.expander("Verification email expired or missing?"):
-                resend_email=st.text_input("Account email",key="resend_email")
-                if st.button("Send a new verification email",width="stretch"):
-                    try:
-                        auth.resend_confirmation(resend_email)
-                        st.success("A new verification email was requested. Open only the newest message; older links may no longer work.")
-                    except AuthError as exc: st.error(str(exc))
             if st.button("New to CareBridge? Create Account",width="stretch"): return ("mode","signup")
     return None

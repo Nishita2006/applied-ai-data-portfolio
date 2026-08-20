@@ -68,11 +68,18 @@ def test_auth_errors_are_sanitized():
     client=SimpleNamespace(auth=SimpleNamespace(sign_in_with_password=lambda payload: (_ for _ in ()).throw(RuntimeError("invalid login credentials internal trace"))))
     with pytest.raises(AuthError,match="Check your email and password"): SupabaseAuth(client).sign_in("person@example.com","bad-password")
 
-def test_signup_uses_carebridge_redirect_url():
+def test_signup_checks_name_availability():
     captured={}
-    client=SimpleNamespace(auth=SimpleNamespace(sign_up=lambda payload: captured.update(payload) or SimpleNamespace(user=None,session=None)))
-    SupabaseAuth(client,"https://carebridge.example").sign_up("person@example.com","password1","Person")
-    assert captured["options"]["email_redirect_to"]=="https://carebridge.example/?auth=signin&confirmed=1"
+    rpc_result=SimpleNamespace(execute=lambda: SimpleNamespace(data=True))
+    client=SimpleNamespace(rpc=lambda name,payload: rpc_result,auth=SimpleNamespace(sign_up=lambda payload: captured.update(payload) or SimpleNamespace(user=None,session=None)))
+    SupabaseAuth(client).sign_up("person@example.com","password1","Person")
+    assert captured["options"]["data"]["first_name"]=="Person"
+
+def test_signup_rejects_registered_name():
+    rpc_result=SimpleNamespace(execute=lambda: SimpleNamespace(data=False))
+    client=SimpleNamespace(rpc=lambda name,payload: rpc_result,auth=SimpleNamespace())
+    with pytest.raises(AuthError,match="name is already registered"):
+        SupabaseAuth(client).sign_up("person@example.com","password1","Person")
 
 def test_store_scopes_visits_to_authenticated_user():
     client=Client({"visits":[{"id":"a","user_id":"user-a","appointment_date":"2026-01-01","appointment_time":"09:00"},{"id":"b","user_id":"user-b","appointment_date":"2026-01-01","appointment_time":"09:00"}]})
@@ -114,6 +121,8 @@ def test_rls_sql_covers_all_private_tables_and_storage():
         assert f"alter table public.{table} enable row level security" in sql
     assert "storage.foldername(name)" in sql
     assert "service_role" not in sql
+    assert "profiles_first_name_unique" in sql
+    assert "is_first_name_available" in sql
 
 def test_config_never_requires_service_role(monkeypatch):
     monkeypatch.setenv("SUPABASE_URL","https://example.supabase.co"); monkeypatch.setenv("SUPABASE_ANON_KEY","anon")
