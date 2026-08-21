@@ -21,6 +21,10 @@ try:
 except Exception: pass
 st.set_page_config(page_title="CareBridge",page_icon="CB",layout="wide",initial_sidebar_state="expanded")
 apply_styles()
+WORKING_TIMES=[time(hour,minute) for hour in range(8,19) for minute in (0,30) if not (hour==18 and minute==30)]
+
+def appointment_time_input(container,key: str):
+    return container.selectbox("Appointment time *",WORKING_TIMES,index=2,key=key,format_func=lambda value:value.strftime("%I:%M %p"))
 
 def table(name: str):
     return store.list_items(name,st.session_state.active_visit_id)
@@ -28,13 +32,15 @@ def refresh(): st.rerun()
 @st.dialog("Create another visit")
 def create_visit_dialog() -> None:
     with st.form("additional-visit"):
-        a,b=st.columns(2); appt_date=a.date_input("Appointment date *",min_value=date.today()); appt_time=b.time_input("Appointment time *",value=time(9,0))
+        a,b=st.columns(2); appt_date=a.date_input("Appointment date *",min_value=date.today()); appt_time=appointment_time_input(b,"additional_visit_time")
         provider=st.text_input("Provider or clinic *",max_chars=120); specialty=st.text_input("Appointment type or specialty *",max_chars=120); reason=st.text_area("Main reason for visit *",max_chars=1000); location=st.text_input("Location (optional)"); notes=st.text_area("Preparation notes (optional)"); submitted=st.form_submit_button("Create Visit",type="primary",width="stretch")
     if submitted:
         if not all(value.strip() for value in (provider,specialty,reason)): st.error("Complete all required fields.")
         else:
-            new_id=store.create_visit({"appointment_date":str(appt_date),"appointment_time":appt_time.strftime("%H:%M"),"provider":provider.strip(),"specialty":specialty.strip(),"reason":reason.strip(),"location":location.strip(),"notes":notes.strip()})
-            st.session_state.active_visit_id=str(new_id); st.session_state.nav_target="Overview"; st.session_state.creating_visit=False; st.toast("Visit created · Overview opened"); refresh()
+            try:
+                new_id=store.create_visit({"appointment_date":str(appt_date),"appointment_time":appt_time.strftime("%H:%M"),"provider":provider.strip(),"specialty":specialty.strip(),"reason":reason.strip(),"location":location.strip(),"notes":notes.strip()})
+                st.session_state.active_visit_id=str(new_id); st.session_state.nav_target="Overview"; st.session_state.creating_visit=False; st.toast("Visit created · Overview opened"); refresh()
+            except Exception as exc: st.error(friendly_data_error(exc))
 def move_question(items: list[dict],index: int,direction: int) -> None:
     target=index+direction
     if target<0 or target>=len(items): return
@@ -105,7 +111,7 @@ if not visits:
         wordmark()
         st.markdown('<div class="cb-form-shell"><div class="cb-step">Step 1 of 2</div><div class="cb-step-track"><div class="cb-step-fill" style="width:50%"></div></div><h1>Tell us about your upcoming visit</h1><p class="cb-lede">Start with the essentials. You can organize everything else inside the workspace.</p></div>',unsafe_allow_html=True)
         with st.form("visit-step-one"):
-            a,b=st.columns(2); appt_date=a.date_input("Appointment date *",min_value=date.today()); appt_time=b.time_input("Appointment time *",value=time(9,0))
+            a,b=st.columns(2); appt_date=a.date_input("Appointment date *",min_value=date.today()); appt_time=appointment_time_input(b,"first_visit_time")
             provider=st.text_input("Provider or clinic *",max_chars=120); specialty=st.text_input("Appointment type or specialty *",max_chars=120); reason=st.text_area("Main reason for visit *",max_chars=1000)
             back,forward=st.columns(2); back_clicked=back.form_submit_button("Back",width="stretch"); submitted=forward.form_submit_button("Continue",type="primary",width="stretch")
         if back_clicked: st.session_state.onboarding_step=-1 if current_user else 0; refresh()
@@ -119,7 +125,10 @@ if not visits:
             location=st.text_input("Location (optional)"); notes=st.text_area("Preparation notes (optional)"); back,finish=st.columns(2); back_clicked=back.form_submit_button("Back",width="stretch"); submitted=finish.form_submit_button("Create Visit Workspace",type="primary",width="stretch")
         if back_clicked: st.session_state.onboarding_step=1; refresh()
         if submitted:
-            draft={**st.session_state.visit_draft,"location":location.strip(),"notes":notes.strip()}; new_id=store.create_visit(draft); st.session_state.active_visit_id=str(new_id); st.session_state.nav="Overview"; st.session_state.onboarding_step=-1; st.toast("Visit created · Your workspace is ready"); refresh()
+            draft={**st.session_state.visit_draft,"location":location.strip(),"notes":notes.strip()}
+            try:
+                new_id=store.create_visit(draft); st.session_state.active_visit_id=str(new_id); st.session_state.nav="Overview"; st.session_state.onboarding_step=-1; st.toast("Visit created · Your workspace is ready"); refresh()
+            except Exception as exc: st.error(friendly_data_error(exc))
     st.stop()
 
 if st.session_state.pop("nav_target",None): st.session_state.nav="Overview"

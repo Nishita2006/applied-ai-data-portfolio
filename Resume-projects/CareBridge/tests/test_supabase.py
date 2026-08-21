@@ -103,11 +103,13 @@ def test_user_b_cannot_retrieve_user_a_unique_phrase(monkeypatch):
     assert result["evidence"]==[]
 
 def test_create_visit_sets_owner_tasks_and_active_visit():
-    client=Client(); store=SupabaseStore(client,"user-a")
+    client=Client({"profiles":[{"user_id":"user-a","first_name":"Person"}]}); store=SupabaseStore(client,"user-a")
     visit_id=store.create_visit({"appointment_date":"2026-01-01","appointment_time":"09:00","provider":"Clinic","specialty":"Visit","reason":"Prepare"})
     assert client.data["visits"][0]["user_id"]=="user-a"
     assert len(client.data["readiness_tasks"])==9
     assert client.data["profiles"][0]["active_visit_id"]==visit_id
+    profile_calls=[call for call in client.calls if call[0]=="profiles"]
+    assert profile_calls[-1][1]=="update"
 
 def test_storage_path_is_user_and_visit_scoped():
     client=Client(); store=SupabaseStore(client,"user-a")

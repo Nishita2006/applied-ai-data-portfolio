@@ -51,10 +51,12 @@ class SupabaseStore:
         return data
     def create_visit(self,data):
         payload={**data,"user_id":self.user_id}; visit=self._table("visits").insert(payload).execute().data[0]; visit_id=visit["id"]
-        try: self._table("preparation_tasks").insert([{"user_id":self.user_id,"visit_id":visit_id,"title":title,"position":i} for i,title in enumerate(DEFAULT_TASKS)]).execute()
+        try:
+            self._table("preparation_tasks").insert([{"user_id":self.user_id,"visit_id":visit_id,"title":title,"position":i} for i,title in enumerate(DEFAULT_TASKS)]).execute()
+            self.set_active_visit(visit_id)
         except Exception:
             self._table("visits").delete().eq("user_id",self.user_id).eq("id",visit_id).execute(); raise
-        self.set_active_visit(visit_id); return visit_id
+        return visit_id
     def insert(self,table,data):
         payload={**data,"user_id":self.user_id}; return self._table(table).insert(payload).execute().data[0]["id"]
     def update(self,table,item_id,data): self._table(table).update(data).eq("user_id",self.user_id).eq("id",item_id).execute()
@@ -64,8 +66,7 @@ class SupabaseStore:
             if found and found[0].get("storage_path"): self.client.storage.from_("carebridge-records").remove([found[0]["storage_path"]])
         self._table(table).delete().eq("user_id",self.user_id).eq("id",item_id).execute()
     def set_active_visit(self,visit_id):
-        payload={"user_id":self.user_id,"active_visit_id":visit_id}
-        self.client.table("profiles").upsert(payload,on_conflict="user_id").execute()
+        self.client.table("profiles").update({"active_visit_id":visit_id}).eq("user_id",self.user_id).execute()
     def get_active_visit(self):
         data=self.client.table("profiles").select("active_visit_id").eq("user_id",self.user_id).limit(1).execute().data or []
         return data[0].get("active_visit_id") if data else None
