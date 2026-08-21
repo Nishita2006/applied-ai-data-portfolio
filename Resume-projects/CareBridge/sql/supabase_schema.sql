@@ -7,16 +7,9 @@ create table if not exists public.profiles (
   active_visit_id uuid,
   created_at timestamptz not null default now(), updated_at timestamptz not null default now()
 );
-update public.profiles set first_name='User-'||left(user_id::text,8) where first_name is null or btrim(first_name)='';
-alter table public.profiles alter column first_name set not null;
-create unique index if not exists profiles_first_name_unique on public.profiles(lower(btrim(first_name)));
-
-create or replace function public.is_first_name_available(candidate text) returns boolean language sql stable security definer set search_path='' as $$
-  select length(btrim(candidate)) between 1 and 80
-    and not exists(select 1 from public.profiles where lower(btrim(first_name))=lower(btrim(candidate)));
-$$;
-revoke all on function public.is_first_name_available(text) from public;
-grant execute on function public.is_first_name_available(text) to anon,authenticated;
+drop index if exists public.profiles_first_name_unique;
+alter table public.profiles alter column first_name drop not null;
+drop function if exists public.is_first_name_available(text);
 create table if not exists public.visits (
   id uuid primary key default gen_random_uuid(), user_id uuid not null references auth.users(id) on delete cascade,
   appointment_date date not null, appointment_time time not null, provider text not null, specialty text not null,
@@ -76,6 +69,29 @@ end;
 $$;
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created after insert on auth.users for each row execute procedure public.handle_new_user();
+
+create or replace function public.create_visit_with_tasks(
+  p_appointment_date date, p_appointment_time time, p_provider text, p_specialty text,
+  p_reason text, p_location text, p_notes text, p_task_titles text[]
+) returns uuid language plpgsql set search_path='' as $$
+declare new_visit_id uuid; task_title text; task_position integer:=0;
+begin
+  if auth.uid() is null then raise exception 'Authentication required'; end if;
+  insert into public.visits(user_id,appointment_date,appointment_time,provider,specialty,reason,location,notes)
+  values(auth.uid(),p_appointment_date,p_appointment_time,p_provider,p_specialty,p_reason,p_location,p_notes)
+  returning id into new_visit_id;
+  foreach task_title in array p_task_titles loop
+    insert into public.readiness_tasks(user_id,visit_id,title,position) values(auth.uid(),new_visit_id,task_title,task_position);
+    task_position:=task_position+1;
+  end loop;
+  insert into public.profiles(user_id,first_name,active_visit_id)
+  values(auth.uid(),null,new_visit_id)
+  on conflict(user_id) do update set active_visit_id=excluded.active_visit_id,updated_at=now();
+  return new_visit_id;
+end;
+$$;
+revoke all on function public.create_visit_with_tasks(date,time,text,text,text,text,text,text[]) from public;
+grant execute on function public.create_visit_with_tasks(date,time,text,text,text,text,text,text[]) to authenticated;
 
 create index if not exists visits_user_id_idx on public.visits(user_id);
 create index if not exists readiness_owner_idx on public.readiness_tasks(user_id,visit_id);

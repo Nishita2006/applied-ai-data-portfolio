@@ -13,6 +13,14 @@ def friendly_data_error(exc: Exception) -> str:
         return "CareBridge's database tables have not been installed in this Supabase project. Run sql/supabase_schema.sql in the Supabase SQL Editor, then reload the app."
     if "permission denied" in text or "row-level security" in text:
         return "CareBridge cannot access your workspace because the Supabase security policies are missing or incomplete. Reapply sql/supabase_schema.sql, then reload the app."
+    if "pgrst202" in text or "create_visit_with_tasks" in text:
+        return "CareBridge's database migration is out of date. Run the complete sql/supabase_schema.sql file in Supabase, then reload the app."
+    if "jwt" in text and ("expired" in text or "invalid" in text):
+        return "Your session expired. Sign in again to continue."
+    if "storage" in text or "bucket" in text or "object" in text:
+        return "CareBridge could not complete the private record-storage operation. Try again; if it continues, verify the Supabase Storage policies."
+    if "timeout" in text or "connect" in text or "network" in text:
+        return "CareBridge could not reach Supabase. Check your connection and try again."
     return "CareBridge could not load your workspace from Supabase. Check the app logs and verify that the database schema was applied successfully."
 
 class LocalStore:
@@ -50,13 +58,11 @@ class SupabaseStore:
                 item["extracted_text"]=(nested or {}).get("extracted_text","") if isinstance(nested,dict) else ((nested or [{}])[0].get("extracted_text","") if nested else "")
         return data
     def create_visit(self,data):
-        payload={**data,"user_id":self.user_id}; visit=self._table("visits").insert(payload).execute().data[0]; visit_id=visit["id"]
-        try:
-            self._table("preparation_tasks").insert([{"user_id":self.user_id,"visit_id":visit_id,"title":title,"position":i} for i,title in enumerate(DEFAULT_TASKS)]).execute()
-            self.set_active_visit(visit_id)
-        except Exception:
-            self._table("visits").delete().eq("user_id",self.user_id).eq("id",visit_id).execute(); raise
-        return visit_id
+        payload={f"p_{key}":data.get(key) or None for key in ("appointment_date","appointment_time","provider","specialty","reason","location","notes")}
+        payload["p_task_titles"]=DEFAULT_TASKS
+        result=self.client.rpc("create_visit_with_tasks",payload).execute().data
+        if not result: raise RuntimeError("Supabase did not return the new visit ID.")
+        return str(result)
     def insert(self,table,data):
         payload={**data,"user_id":self.user_id}; return self._table(table).insert(payload).execute().data[0]["id"]
     def update(self,table,item_id,data): self._table(table).update(data).eq("user_id",self.user_id).eq("id",item_id).execute()
@@ -82,6 +88,8 @@ class SupabaseStore:
             self.client.table("document_text").insert({"document_id":document_id,"user_id":self.user_id,"visit_id":visit_id,"extracted_text":text}).execute()
             return document_id
         except Exception:
+            try: self.client.table("documents").delete().eq("user_id",self.user_id).eq("id",document_id).execute()
+            except Exception: pass
             try: self.client.storage.from_("carebridge-records").remove([storage_path])
             except Exception: pass
             raise

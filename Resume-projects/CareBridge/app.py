@@ -1,15 +1,17 @@
 from __future__ import annotations
-import json, os
+import json, logging, os
 from datetime import date, time
 from html import escape
+from urllib.parse import urlsplit, urlunsplit
 import streamlit as st
-from src.auth import AuthUser, SupabaseAuth
+from src.auth import AuthUser, SupabaseAuth, clear_user_session
 from src.config import load_config
 from src.database import DB_PATH, initialize
 from src.documents import DocumentError, extract_text
 from src.export import build_visit_pdf
 from src.ml import classify_document_details
 from src.rag import Chunk, answer
+from src.routing import AUTHENTICATED_NO_VISITS, AUTHENTICATED_WITH_VISIT, PUBLIC, resolve_app_state
 from src.store import LocalStore, SupabaseStore, friendly_data_error
 from ui.auth import auth_screen
 from ui.components import bento_features, empty_state, final_cta, hero_copy, marketing_nav, page_header, product_preview, progress_card, records_story, responsible_ai, section_header, summary_card, topbar, wordmark, workflow_story
@@ -21,7 +23,20 @@ try:
 except Exception: pass
 st.set_page_config(page_title="CareBridge",page_icon="CB",layout="wide",initial_sidebar_state="expanded")
 apply_styles()
+logger=logging.getLogger("carebridge")
 WORKING_TIMES=[time(hour,minute) for hour in range(8,19) for minute in (0,30) if not (hour==18 and minute==30)]
+
+class SafeStore:
+    def __init__(self,wrapped): self.wrapped=wrapped
+    def __getattr__(self,name):
+        value=getattr(self.wrapped,name)
+        if not callable(value): return value
+        def guarded(*args,**kwargs):
+            try: return value(*args,**kwargs)
+            except Exception as exc:
+                logger.exception("Store operation failed: %s",name)
+                st.error(friendly_data_error(exc)); st.stop()
+        return guarded
 
 def appointment_time_input(container,key: str):
     return container.selectbox("Appointment time *",WORKING_TIMES,index=2,key=key,format_func=lambda value:value.strftime("%I:%M %p"))
@@ -55,21 +70,29 @@ config=load_config(st.secrets)
 current_user=st.session_state.get("auth_user")
 auth=None
 if config.local_mode:
-    initialize(); store=LocalStore(DB_PATH); current_user=AuthUser("local","local@carebridge")
+    initialize(); store=SafeStore(LocalStore(DB_PATH)); current_user=AuthUser("local","local@carebridge")
 elif config.supabase_ready:
     if "supabase_client" not in st.session_state:
         from supabase import create_client
         st.session_state.supabase_client=create_client(config.supabase_url,config.supabase_anon_key)
     auth=SupabaseAuth(st.session_state.supabase_client)
+    recovery_token=st.query_params.get("token_hash") if st.query_params.get("type")=="recovery" else None
+    if not current_user and recovery_token:
+        try:
+            auth.verify_recovery(recovery_token); st.session_state.auth_mode="reset"; st.query_params.clear(); refresh()
+        except Exception as exc:
+            st.session_state.auth_error=str(exc); st.session_state.auth_mode="forgot"; st.query_params.clear(); refresh()
     if not current_user and (st.query_params.get("start")=="1" or st.query_params.get("auth") or st.session_state.get("auth_mode")):
         mode=st.query_params.get("auth") or st.session_state.get("auth_mode","signup")
-        result=auth_screen(auth,mode)
+        parts=urlsplit(str(st.context.url)); app_url=urlunsplit((parts.scheme,parts.netloc,parts.path,"",""))
+        if st.session_state.pop("auth_error",None): st.error("That password-reset link is invalid or expired. Request a new one.")
+        result=auth_screen(auth,mode,app_url)
         if result:
             kind,value=result
             if kind=="mode": st.session_state.auth_mode=value; st.query_params.clear(); refresh()
             else: st.session_state.auth_user=value; st.session_state.auth_mode="signin"; st.query_params.clear(); refresh()
         st.stop()
-    if current_user: store=SupabaseStore(st.session_state.supabase_client,current_user.id)
+    if current_user: store=SafeStore(SupabaseStore(st.session_state.supabase_client,current_user.id))
 else:
     auth=None
 
@@ -82,9 +105,11 @@ else:
         st.info("Setup path: Supabase Dashboard → SQL Editor → New query → paste the complete sql/supabase_schema.sql file → Run.")
         if st.button("Sign Out",width="stretch"):
             if auth: auth.sign_out()
-            for key in list(st.session_state.keys()): del st.session_state[key]
+            clear_user_session(st.session_state)
             st.query_params.clear(); refresh()
         st.stop()
+
+app_state=resolve_app_state(current_user,visits)
 
 if current_user and visits:
     valid_ids={str(v["id"]) for v in visits}
@@ -92,8 +117,8 @@ if current_user and visits:
     st.session_state.active_visit_id=candidate if candidate in valid_ids else str(visits[0]["id"])
     if candidate not in valid_ids: store.set_active_visit(st.session_state.active_visit_id)
 
-if not visits:
-    step=st.session_state.get("onboarding_step",-1 if current_user else 0)
+if app_state!=AUTHENTICATED_WITH_VISIT:
+    step=st.session_state.get("onboarding_step",-1 if app_state==AUTHENTICATED_NO_VISITS else 0)
     if step==0:
         marketing_nav()
         if (st.query_params.get("start")=="1" or st.query_params.get("auth")) and not config.supabase_ready:
@@ -114,7 +139,7 @@ if not visits:
             a,b=st.columns(2); appt_date=a.date_input("Appointment date *",min_value=date.today()); appt_time=appointment_time_input(b,"first_visit_time")
             provider=st.text_input("Provider or clinic *",max_chars=120); specialty=st.text_input("Appointment type or specialty *",max_chars=120); reason=st.text_area("Main reason for visit *",max_chars=1000)
             back,forward=st.columns(2); back_clicked=back.form_submit_button("Back",width="stretch"); submitted=forward.form_submit_button("Continue",type="primary",width="stretch")
-        if back_clicked: st.session_state.onboarding_step=-1 if current_user else 0; refresh()
+        if back_clicked: st.session_state.onboarding_step=-1 if app_state==AUTHENTICATED_NO_VISITS else 0; refresh()
         if submitted:
             if not all(x.strip() for x in (provider,specialty,reason)): st.error("Complete all required fields before continuing.")
             else: st.session_state.visit_draft={"appointment_date":str(appt_date),"appointment_time":appt_time.strftime("%H:%M"),"provider":provider.strip(),"specialty":specialty.strip(),"reason":reason.strip()}; st.session_state.onboarding_step=2; refresh()
@@ -143,7 +168,7 @@ with st.sidebar:
         st.caption(current_user.email)
         if st.button("Sign Out",width="stretch"):
             auth.sign_out();
-            for key in list(st.session_state.keys()): del st.session_state[key]
+            clear_user_session(st.session_state)
             st.query_params.clear(); refresh()
     st.markdown('<div class="cb-privacy">Preparation and communication support only. CareBridge does not diagnose or recommend treatment.</div>',unsafe_allow_html=True)
 
@@ -299,5 +324,8 @@ else:
     section_header("Review confirmation"); progress_card(score,sum(t["completed"] for t in tasks),len(tasks)); approved=st.checkbox("I reviewed this brief and confirm that it reflects the information I entered.",value=bool(visit["brief_confirmed"]))
     if approved!=bool(visit["brief_confirmed"]): store.confirm_brief(visit["id"],approved)
     if approved:
-        pdf=build_visit_pdf(visit,symptoms,meds,allergies,docs,questions); payload=json.dumps({"visit":visit,"symptoms":symptoms,"medications":meds,"allergies":allergies,"documents":[{k:v for k,v in d.items() if k!="extracted_text"} for d in docs],"questions":questions},indent=2); a,b=st.columns(2); a.download_button("Download Visit Brief",pdf,"carebridge-visit-brief.pdf","application/pdf",type="primary",width="stretch"); b.download_button("Download Structured Data",payload,"carebridge-visit-data.json","application/json",width="stretch")
+        try:
+            pdf=build_visit_pdf(visit,symptoms,meds,allergies,docs,questions); payload=json.dumps({"visit":visit,"symptoms":symptoms,"medications":meds,"allergies":allergies,"documents":[{k:v for k,v in d.items() if k!="extracted_text"} for d in docs],"questions":questions},indent=2); a,b=st.columns(2); a.download_button("Download Visit Brief",pdf,"carebridge-visit-brief.pdf","application/pdf",type="primary",width="stretch"); b.download_button("Download Structured Data",payload,"carebridge-visit-data.json","application/json",width="stretch")
+        except Exception:
+            logger.exception("Visit brief export failed"); st.error("CareBridge could not generate the visit brief. Review the saved information and try again.")
     else: st.info("Review and confirm the brief to enable downloads.")

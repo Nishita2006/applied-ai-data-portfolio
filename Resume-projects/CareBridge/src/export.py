@@ -17,8 +17,14 @@ def build_visit_pdf(visit: dict, symptoms: list[dict], medications: list[dict], 
     pages=[]; lines=[("CareBridge visit brief",18,True),(f"Generated {date.today().isoformat()} · Patient-prepared and reviewed",9,False)]
     for title,items in sections:
         lines.append((title,12,True))
-        lines += [("• "+part,9,False) for item in (items or ["None entered"]) for part in wrap(str(item),100)]
-    while lines: pages.append(lines[:38]); lines=lines[38:]
+        lines += [("• "+part,9,False) for item in (items or ["Not entered"]) for part in wrap(str(item),100)]
+    page=[]; used_height=0.0
+    for line in lines:
+        line_height=.048 if line[1]>=12 else .035
+        if page and used_height+line_height>.82:
+            pages.append(page); page=[]; used_height=0.0
+        page.append(line); used_height+=line_height
+    if page: pages.append(page)
     with PdfPages(buffer) as pdf:
         for page in pages:
             fig=Figure(figsize=(8.27,11.69),facecolor="white"); ax=fig.subplots(); ax.axis("off"); y=.95

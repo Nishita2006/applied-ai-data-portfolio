@@ -56,6 +56,8 @@ SUPABASE_ANON_KEY = "your publishable or anon key"
 
 Never use a Supabase service-role key in this application. Without Supabase configuration, the public marketing page remains visible but account and workspace creation are disabled.
 
+For the supported Forgot Password flow, apply the recovery-email template and redirect configuration in `docs/password_recovery.md`.
+
 ## Optional environment configuration
 
 Set the API key as an environment variable or Streamlit secret to enable the optional grounded response composer. The model setting is optional:

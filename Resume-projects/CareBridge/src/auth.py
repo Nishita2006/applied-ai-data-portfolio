@@ -12,8 +12,11 @@ class AuthUser:
     email: str
     first_name: str = ""
 
-def validate_signup(email: str,password: str,confirm: str,first_name: str) -> None:
-    if not first_name.strip(): raise AuthError("Enter your first name.")
+def clear_user_session(state) -> None:
+    for key in list(state.keys()): del state[key]
+
+def validate_signup(email: str,password: str,confirm: str,first_name: str="") -> None:
+    if len(first_name.strip())>80: raise AuthError("First name must be 80 characters or fewer.")
     if not EMAIL.match(email.strip()): raise AuthError("Enter a valid email address.")
     if len(password)<8: raise AuthError("Use at least 8 characters for your password.")
     if password!=confirm: raise AuthError("Passwords do not match.")
@@ -23,15 +26,24 @@ class SupabaseAuth:
     def sign_up(self,email: str,password: str,first_name: str):
         validate_signup(email,password,password,first_name)
         try:
-            available=self.client.rpc("is_first_name_available",{"candidate":first_name.strip()}).execute().data
-            if available is not True: raise AuthError("That name is already registered. Enter a different name.")
             return self.client.auth.sign_up({"email":email.strip(),"password":password,"options":{"data":{"first_name":first_name.strip()}}})
-        except AuthError: raise
         except Exception as exc: raise AuthError(self._friendly(exc,"CareBridge could not create that account.")) from exc
     def sign_in(self,email: str,password: str):
         if not EMAIL.match(email.strip()) or not password: raise AuthError("Enter a valid email and password.")
         try: return self.client.auth.sign_in_with_password({"email":email.strip(),"password":password})
         except Exception as exc: raise AuthError(self._friendly(exc,"The email or password was not accepted.")) from exc
+    def request_password_reset(self,email: str,redirect_url: str) -> None:
+        if not EMAIL.match(email.strip()): raise AuthError("Enter a valid email address.")
+        try: self.client.auth.reset_password_for_email(email.strip(),{"redirect_to":redirect_url})
+        except Exception as exc: raise AuthError(self._friendly(exc,"CareBridge could not send the password-reset email. Try again shortly.")) from exc
+    def verify_recovery(self,token_hash: str):
+        try: return self.client.auth.verify_otp({"token_hash":token_hash,"type":"recovery"})
+        except Exception as exc: raise AuthError(self._friendly(exc,"That password-reset link is invalid or expired. Request a new one.")) from exc
+    def update_password(self,password: str,confirm: str) -> None:
+        if len(password)<8: raise AuthError("Use at least 8 characters for your new password.")
+        if password!=confirm: raise AuthError("Passwords do not match.")
+        try: self.client.auth.update_user({"password":password})
+        except Exception as exc: raise AuthError(self._friendly(exc,"CareBridge could not update the password. Request a new reset link.")) from exc
     def sign_out(self) -> None:
         try: self.client.auth.sign_out()
         except Exception: pass
@@ -44,7 +56,7 @@ class SupabaseAuth:
     @staticmethod
     def _friendly(exc: Exception,fallback: str) -> str:
         text=str(exc).lower()
-        if "already registered" in text or "already exists" in text: return "That email or name is already registered. Sign in, or use different account details."
+        if "already registered" in text or "already exists" in text: return "An account already exists for this email. Sign in or use a different email address."
         if "email not confirmed" in text: return "This Supabase project still requires email verification. Turn off Confirm email in Supabase Authentication settings."
         if "invalid login" in text or "invalid credentials" in text: return "Sign-in failed. Check your email and password, or create an account if you have not registered."
         if "your-project-id.supabase.co" in text or "name resolution" in text or "getaddrinfo" in text or "could not resolve" in text:
