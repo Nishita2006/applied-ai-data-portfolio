@@ -6,7 +6,8 @@ CSS = r"""
 :root{--canvas:#f6f4ef;--surface:#fff;--surface-soft:#f0f5f3;--navy:#112f3e;--navy-2:#1b4252;--teal:#19766d;--teal-dark:#125c56;--mint:#dcece7;--ink:#17313b;--muted:#64757b;--line:#dce3df;--warm:#f4eee4;--danger:#a44646;--shadow:0 10px 30px rgba(17,47,62,.07);--radius:18px}
 html,body,[class*="css"]{font-family:Inter,"Segoe UI",Arial,sans-serif}.stApp{background:radial-gradient(circle at 78% 5%,rgba(89,181,164,.12),transparent 24%),radial-gradient(circle at 8% 35%,rgba(90,133,169,.07),transparent 25%),var(--canvas);color:var(--ink)}
 .block-container{max-width:1180px;padding:1.5rem 2.25rem 4rem}.stMainBlockContainer{padding-top:1.5rem}
-header[data-testid="stHeader"]{background:transparent;height:2.5rem}[data-testid="stToolbar"]{visibility:hidden}
+header[data-testid="stHeader"]{background:rgba(246,244,239,.92);height:2.8rem;backdrop-filter:blur(8px)}[data-testid="stToolbar"]{visibility:visible}
+[data-testid="stSidebarCollapsedControl"]{display:flex!important;visibility:visible!important;opacity:1!important;position:fixed!important;top:.45rem!important;left:.55rem!important;z-index:999999!important;background:#fff!important;border:1px solid var(--line)!important;border-radius:9px!important;box-shadow:0 4px 14px rgba(17,47,62,.12)!important}
 [data-testid="stSidebar"]{background:linear-gradient(180deg,var(--navy),#173948);border-right:0}
 [data-testid="stSidebar"] .block-container{padding:1.55rem 1rem}[data-testid="stSidebar"] *{color:#eef6f4}
 [data-testid="stSidebar"] [data-baseweb="select"]>div{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.12)}
